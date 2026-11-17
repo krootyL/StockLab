@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockLab Admin</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-2: #1f2630;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 16px; }
+    .brand a { color: var(--muted); font-size: 13px; text-decoration: none; font-weight: 500; }
+    .brand a:hover { color: var(--accent); }
+    .auth-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    input, select, button {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    button { cursor: pointer; font-weight: 600; }
+    button.primary { background: #1f6feb; border-color: #388bfd; }
+    button.primary:hover { background: #388bfd; }
+    button.danger { background: rgba(248, 81, 73, 0.15); border-color: var(--red); color: var(--red); }
+    button.danger:hover { background: rgba(248, 81, 73, 0.28); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status-pill { font-size: 12px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+    .status-pill.ok { color: var(--green); border-color: rgba(63, 185, 80, 0.4); }
+    .status-pill.err { color: var(--red); border-color: rgba(248, 81, 73, 0.4); }
+    .forced-switch-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      cursor: pointer;
+    }
+    .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #30363d;
+      border-radius: 999px;
+      transition: .2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: #e6edf3;
+      border-radius: 50%;
+      transition: .2s;
+    }
+    .switch input:checked + .slider { background: var(--green); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .pagination-btns { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .pagination-btns button { padding: 4px 8px; font-size: 12px; }
+    .pagination-btns button.active { background: #1f6feb; border-color: #388bfd; color: var(--text); }
+    main {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+      min-height: calc(100vh - 58px);
+    }
+    @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .search-row { display: flex; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .search-row input { flex: 1; }
+    .table-wrap { overflow: auto; flex: 1; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; background: var(--surface); position: sticky; top: 0; }
+    tr.selectable { cursor: pointer; }
+    tr.selectable:hover { background: var(--surface-2); }
+    tr.selectable.active { background: rgba(88, 166, 255, 0.14); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+    .detail-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow: auto; }
+    .card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .tab-btn { background: transparent; border-color: transparent; color: var(--muted); }
+    .tab-btn.active { background: var(--surface-2); border-color: var(--border); color: var(--text); }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-guest { background: rgba(139, 148, 158, 0.18); color: var(--muted); }
+    .badge-buy { background: rgba(248, 81, 73, 0.16); color: var(--red); }
+    .badge-sell { background: rgba(88, 166, 255, 0.16); color: var(--accent); }
+    .badge-pending { background: rgba(210, 153, 34, 0.18); color: var(--yellow); }
+    .badge-filled { background: rgba(63, 185, 80, 0.18); color: var(--green); }
+    .badge-cancelled { background: rgba(139, 148, 158, 0.18); color: var(--muted); }
+    .empty { color: var(--muted); padding: 24px; text-align: center; }
+    #toast {
+      position: fixed; right: 20px; bottom: 20px; padding: 10px 14px; border-radius: 8px;
+      background: var(--surface-2); border: 1px solid var(--border); display: none; z-index: 99;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>StockLab Admin</span>
+      <button id="navUsersBtn" class="tab-btn active" onclick="switchMainView('users')">유저 관리</button>
+      <button id="navOrdersBtn" class="tab-btn" onclick="switchMainView('orders')">전체 주문 현황</button>
+      <a href="/">대시보드 돌아가기</a>
+    </div>
+    <div class="auth-bar">
+      <label class="forced-switch-wrap" title="종가 ±1% 범위 내에서 초당 3건 가상 호가 공급">
+        <span style="font-size:12px;color:var(--muted);">강제 체결</span>
+        <span class="switch">
+          <input id="forcedMatchToggle" type="checkbox" onchange="toggleForcedMatching(this.checked)" />
+          <span class="slider"></span>
+        </span>
+        <span id="forcedMatchState" class="status-pill">OFF</span>
+      </label>
+      <input id="adminKeyInput" type="password" placeholder="X-Admin-Key 입력" />
+      <button class="primary" onclick="connectAdmin()">연결 / 새로고침</button>
+      <span id="authStatus" class="status-pill">미연결</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="panel-header">
+        <span>유저 목록 (<span id="userCount">0</span>)</span>
+      </div>
+      <div class="search-row">
+        <input id="searchInput" type="text" placeholder="UID 또는 닉네임 검색" />
+        <button onclick="loadUsers(true)">검색</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>닉네임</th><th>UID</th><th>타입</th><th>생성일</th></tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="4" class="empty">Admin Key를 입력하고 연결을 눌러줘.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="userPagination" class="pagination-bar" style="display:none;"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <span id="detailTitle">유저 상세</span>
+        <div class="row" id="scenarioPickerWrap" style="display:none;">
+          <label for="scenarioSelect" style="color:var(--muted);font-size:12px;">시나리오</label>
+          <select id="scenarioSelect" onchange="onScenarioChange()"></select>
+        </div>
+      </div>
+      <div class="detail-body" id="detailBody">
+        <div class="empty">좌측에서 유저를 선택하면 시나리오, 지갑, 보유종목, 주문/체결 내역을 보고 수정할 수 있어.</div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <script>
+    const KEY_STORAGE = 'stocklab_admin_key';
+    const USER_TYPES = { 1: 'Guest', 2: 'Discord', 3: 'Local' };
+    const ORDER_SIDES = { 1: '매수', 2: '매도' };
+    const ORDER_TYPES = { 1: '시장가', 2: '지정가' };
+    const ORDER_STATUS = { 1: 'Pending', 2: 'PartiallyFilled', 3: 'Filled', 4: 'Cancelled', 5: 'Rejected' };
+
+    let users = [];
+    let selectedUid = null;
+    let selectedScenarioId = null;
+    let activeTab = 'wallets';
+    let mainView = 'users';
+    let globalOrderFilter = 'pending';
+    let toastTimer = null;
+
+    const PAGE_SIZE = 20;
+    let usersPage = 1;
+    let usersTotalPages = 1;
+    let usersTotalCount = 0;
+    let globalOrdersPage = 1;
+    let scenarioOrdersPage = 1;
+    let scenarioTradesPage = 1;
+
+    function getInputValue(id) {
+      const el = document.getElementById(id);
+      return (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) ? el.value : '';
+    }
+
+    function setInputValue(id, val) {
+      const el = document.getElementById(id);
+      if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) el.value = val;
+    }
+
+    function getErrorMessage(err) {
+      return err instanceof Error ? err.message : String(err);
+    }
+
+    setInputValue('adminKeyInput', sessionStorage.getItem(KEY_STORAGE) || '');
+    document.getElementById('searchInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadUsers(true);
+    });
+
+    function getAdminKey() {
+      return getInputValue('adminKeyInput').trim();
+    }
+
+    function showToast(msg, isError = false) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
+      el.style.color = isError ? 'var(--red)' : 'var(--text)';
+      el.style.display = 'block';
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+    }
+
+    async function apiFetch(url, method = 'GET', bodyObj = null) {
+      const key = getAdminKey();
+      if (!key) throw new Error('X-Admin-Key를 먼저 입력해주세요.');
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Key': key
+        },
+        body: bodyObj ? JSON.stringify(bodyObj) : undefined
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        const msg = json?.error?.message || `요청 실패 (${res.status})`;
+        throw new Error(msg);
+      }
+      return json.data;
+    }
+
+    async function connectAdmin() {
+      const key = getAdminKey();
+      if (!key) return showToast('X-Admin-Key를 입력해주세요.', true);
+      sessionStorage.setItem(KEY_STORAGE, key);
+      await Promise.all([loadUsers(), loadForcedMatchingStatus()]);
+    }
+
+    function renderForcedMatchingState(enabled) {
+      const toggleEl = document.getElementById('forcedMatchToggle');
+      const stateEl = document.getElementById('forcedMatchState');
+      if (toggleEl instanceof HTMLInputElement) toggleEl.checked = !!enabled;
+      if (stateEl) {
+        stateEl.textContent = enabled ? 'ON (3건/초)' : 'OFF';
+        stateEl.className = enabled ? 'status-pill ok' : 'status-pill';
+      }
+    }
+
+    async function loadForcedMatchingStatus() {
+      if (!getAdminKey()) return;
+      try {
+        const data = await apiFetch('/api/admin/matching/forced');
+        renderForcedMatchingState(!!data?.enabled);
+      } catch {
+        // 연결 상태 미확정 시 무시
+      }
+    }
+
+    async function toggleForcedMatching(enabled) {
+      try {
+        const data = await apiFetch('/api/admin/matching/forced', 'POST', { enabled: !!enabled });
+        const actual = !!data?.enabled;
+        renderForcedMatchingState(actual);
+        showToast(actual ? '강제 체결 스위치 ON (종가 ±1%, 초당 3건 가상공급)' : '강제 체결 스위치 OFF');
+      } catch (err) {
+        renderForcedMatchingState(!enabled);
+        showToast(getErrorMessage(err), true);
+      }
+    }
+
+    function buildPaginationHtml(page, totalPages, totalCount, handlerName) {
+      if (totalCount === 0) return '';
+      const safeTotalPages = Math.max(1, totalPages || 1);
+      const safePage = Math.min(Math.max(1, page || 1), safeTotalPages);
+      const startPage = Math.max(1, safePage - 2);
+      const endPage = Math.min(safeTotalPages, startPage + 4);
+      const adjustedStart = Math.max(1, endPage - 4);
+
+      const pageButtons = [];
+      for (let p = adjustedStart; p <= endPage; p++) {
+        pageButtons.push(`<button class="${p === safePage ? 'active' : ''}" onclick="${handlerName}(${p})">${p}</button>`);
+      }
+
+      return `
+        <div class="pagination-bar">
+          <span>총 <strong>${totalCount.toLocaleString('ko-KR')}</strong>건 · ${safePage} / ${safeTotalPages} 페이지</span>
+          <div class="pagination-btns">
+            <button ${safePage <= 1 ? 'disabled' : ''} onclick="${handlerName}(1)">처음</button>
+            <button ${safePage <= 1 ? 'disabled' : ''} onclick="${handlerName}(${safePage - 1})">이전</button>
+            ${pageButtons.join('')}
+            <button ${safePage >= safeTotalPages ? 'disabled' : ''} onclick="${handlerName}(${safePage + 1})">다음</button>
+            <button ${safePage >= safeTotalPages ? 'disabled' : ''} onclick="${handlerName}(${safeTotalPages})">마지막</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function goUsersPage(page) {
+      usersPage = Math.max(1, page);
+      loadUsers(false);
+    }
+
+    function goGlobalOrdersPage(page) {
+      globalOrdersPage = Math.max(1, page);
+      renderGlobalOrders();
+    }
+
+    function goScenarioOrdersPage(page) {
+      scenarioOrdersPage = Math.max(1, page);
+      renderDetail();
+    }
+
+    function goScenarioTradesPage(page) {
+      scenarioTradesPage = Math.max(1, page);
+      renderDetail();
+    }
+
+    async function loadUsers(resetPage = false) {
+      if (resetPage) usersPage = 1;
+      const statusEl = document.getElementById('authStatus');
+      try {
+        const q = getInputValue('searchInput').trim();
+        const params = new URLSearchParams({
+          page: String(usersPage),
+          pageSize: String(PAGE_SIZE)
+        });
+        if (q) params.set('query', q);
+        const paged = await apiFetch(`/api/admin/users?${params.toString()}`);
+        users = paged?.items ?? [];
+        usersPage = paged?.page ?? 1;
+        usersTotalPages = paged?.totalPages ?? 1;
+        usersTotalCount = paged?.totalCount ?? users.length;
+
+        statusEl.textContent = '연결됨';
+        statusEl.className = 'status-pill ok';
+        document.getElementById('userCount').textContent = String(usersTotalCount);
+        renderUserTable();
+        if (mainView === 'orders') {
+          await renderGlobalOrders();
+        } else if (selectedUid) {
+          const stillExists = users.find(u => u.uid === selectedUid);
+          if (stillExists) renderDetail();
+          else { selectedUid = null; selectedScenarioId = null; }
+        }
+      } catch (err) {
+        statusEl.textContent = '인증/오류';
+        statusEl.className = 'status-pill err';
+        showToast(getErrorMessage(err), true);
+      }
+    }
+
+    function switchMainView(view) {
+      mainView = view;
+      document.getElementById('navUsersBtn')?.classList.toggle('active', view === 'users');
+      document.getElementById('navOrdersBtn')?.classList.toggle('active', view === 'orders');
+      if (view === 'orders') {
+        renderGlobalOrders();
+      } else {
+        renderDetail();
+      }
+    }
+
+    function setGlobalOrderFilter(filter) {
+      globalOrderFilter = filter;
+      globalOrdersPage = 1;
+      renderGlobalOrders();
+    }
+
+    function buildWaitReasonBadge(o) {
+      if (!o.waitReason) return '<span style="color:var(--muted);">-</span>';
+      let color = 'var(--accent)';
+      if (o.waitReasonCode === 'MarketClosed') color = 'var(--muted)';
+      else if (o.waitReasonCode === 'PriceMismatch') color = 'var(--red)';
+      else if (o.waitReasonCode === 'PartialLiquidity') color = 'var(--green)';
+      else if (o.waitReasonCode === 'PendingRegistration') color = 'var(--yellow)';
+      return `<span class="mono" style="color:${color};font-size:11px;">${esc(o.waitReason)}</span>`;
+    }
+
+    function buildOrdersTableHtml(orders, includeUserCols) {
+      if (!orders.length) return '<div class="empty">해당 조건의 거래가 없습니다.</div>';
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>OrderId</th>
+              ${includeUserCols ? '<th>유저</th><th>시나리오</th>' : ''}
+              <th>종목</th><th>구분</th><th>유형</th><th>상태</th>${includeUserCols ? '<th>대기 사유</th>' : ''}<th>주문가</th><th>체결/수량</th><th>주문시각</th><th>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map(o => {
+              const canCancel = o.status === 1 || o.status === 2;
+              const statusClass = o.status === 3 ? 'badge-filled' : (canCancel ? 'badge-pending' : 'badge-cancelled');
+              const userCell = includeUserCols
+                ? `<td><a href="#" style="color:var(--accent);text-decoration:none;" onclick="jumpToUser('${esc(o.uid)}');return false;">${esc(o.nickname)}</a></td><td class="mono">#${o.scenarioId}</td>`
+                : '';
+              const waitCell = includeUserCols ? `<td>${buildWaitReasonBadge(o)}</td>` : '';
+              return `
+                <tr>
+                  <td class="mono">${o.orderId}</td>
+                  ${userCell}
+                  <td class="mono"><strong>${esc(o.stockCode)}</strong></td>
+                  <td><span class="badge ${o.side === 1 ? 'badge-buy' : 'badge-sell'}">${ORDER_SIDES[o.side] || o.side}</span></td>
+                  <td>${ORDER_TYPES[o.orderType] || o.orderType}</td>
+                  <td><span class="badge ${statusClass}">${ORDER_STATUS[o.status] || o.status}</span></td>
+                  ${waitCell}
+                  <td class="mono">${fmtNum(o.orderPrice, 4)}</td>
+                  <td class="mono">${o.filledQuantity} / ${o.quantity}</td>
+                  <td class="mono">${fmtDate(o.orderedAtUtc)}</td>
+                  <td>${canCancel ? `<button class="danger" onclick="cancelOrder(${o.orderId})">강제취소</button>` : '-'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function jumpToUser(uid) {
+      mainView = 'users';
+      document.getElementById('navUsersBtn')?.classList.add('active');
+      document.getElementById('navOrdersBtn')?.classList.remove('active');
+      activeTab = 'orders';
+      selectUser(uid);
+    }
+
+    async function renderGlobalOrders(preserveLayout = false) {
+      const body = document.getElementById('detailBody');
+      document.getElementById('detailTitle').textContent = '전체 주문 현황';
+      document.getElementById('scenarioPickerWrap').style.display = 'none';
+
+      let wrap = document.getElementById('globalOrdersWrap');
+      if (!preserveLayout || !wrap) {
+        body.innerHTML = `
+          <div class="tabs">
+            <button class="tab-btn ${globalOrderFilter === 'pending' ? 'active' : ''}" onclick="setGlobalOrderFilter('pending')">체결대기 (Pending·부분체결)</button>
+            <button class="tab-btn ${globalOrderFilter === 'filled' ? 'active' : ''}" onclick="setGlobalOrderFilter('filled')">체결완료 (Filled)</button>
+            <button class="tab-btn ${globalOrderFilter === 'cancelled' ? 'active' : ''}" onclick="setGlobalOrderFilter('cancelled')">취소됨</button>
+            <button class="tab-btn ${globalOrderFilter === 'all' ? 'active' : ''}" onclick="setGlobalOrderFilter('all')">전체</button>
+          </div>
+          <div id="globalOrdersWrap">불러오는 중...</div>
+        `;
+        wrap = document.getElementById('globalOrdersWrap');
+      }
+      try {
+        const paged = await apiFetch(`/api/admin/orders?status=${encodeURIComponent(globalOrderFilter)}&page=${globalOrdersPage}&pageSize=${PAGE_SIZE}`);
+        const orders = paged?.items ?? [];
+        globalOrdersPage = paged?.page ?? 1;
+        wrap.innerHTML = buildOrdersTableHtml(orders, true) +
+          buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goGlobalOrdersPage');
+      } catch (err) {
+        wrap.innerHTML = `<div class="empty">${esc(getErrorMessage(err))}</div>`;
+      }
+    }
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleString('ko-KR', { hour12: false });
+    }
+
+    function fmtNum(n, digits = 2) {
+      return Number(n).toLocaleString('ko-KR', { maximumFractionDigits: digits });
+    }
+
+    function esc(str) {
+      return String(str ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+    }
+
+    function renderUserTable() {
+      const tbody = document.getElementById('userTableBody');
+      const pager = document.getElementById('userPagination');
+      if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">조회된 유저가 없습니다.</td></tr>';
+        if (pager) pager.style.display = 'none';
+        return;
+      }
+      tbody.innerHTML = users.map(u => `
+        <tr class="selectable ${u.uid === selectedUid ? 'active' : ''}" onclick="selectUser('${u.uid}')">
+          <td>${esc(u.nickname)}</td>
+          <td class="mono">${esc(u.uid)}</td>
+          <td><span class="badge badge-guest">${USER_TYPES[u.type] || u.type}</span></td>
+          <td class="mono">${fmtDate(u.createdAtUtc)}</td>
+        </tr>
+      `).join('');
+      if (pager) {
+        pager.innerHTML = buildPaginationHtml(usersPage, usersTotalPages, usersTotalCount, 'goUsersPage');
+        pager.style.display = usersTotalCount > 0 ? 'flex' : 'none';
+      }
+    }
+
+    function selectUser(uid) {
+      selectedUid = uid;
+      const user = users.find(u => u.uid === uid);
+      selectedScenarioId = user?.scenarios?.[0]?.scenarioId ?? null;
+      scenarioOrdersPage = 1;
+      scenarioTradesPage = 1;
+      mainView = 'users';
+      document.getElementById('navUsersBtn')?.classList.add('active');
+      document.getElementById('navOrdersBtn')?.classList.remove('active');
+      renderUserTable();
+      renderDetail();
+    }
+
+    function onScenarioChange() {
+      selectedScenarioId = Number(getInputValue('scenarioSelect'));
+      scenarioOrdersPage = 1;
+      scenarioTradesPage = 1;
+      renderDetail();
+    }
+
+    async function renderDetail() {
+      const user = users.find(u => u.uid === selectedUid);
+      const body = document.getElementById('detailBody');
+      const pickerWrap = document.getElementById('scenarioPickerWrap');
+      if (!user) {
+        pickerWrap.style.display = 'none';
+        body.innerHTML = '<div class="empty">좌측에서 유저를 선택해주세요.</div>';
+        return;
+      }
+
+      document.getElementById('detailTitle').textContent = `${user.nickname} (${user.uid})`;
+      const select = document.getElementById('scenarioSelect');
+      select.innerHTML = user.scenarios.map(s => `<option value="${s.scenarioId}" ${s.scenarioId === selectedScenarioId ? 'selected' : ''}>#${s.scenarioId} ${esc(s.name)}</option>`).join('');
+      pickerWrap.style.display = user.scenarios.length ? 'flex' : 'none';
+
+      const scenario = user.scenarios.find(s => s.scenarioId === selectedScenarioId);
+      const tabHeader = `
+        <div class="card">
+          <div class="row" style="justify-content:space-between;">
+            <div class="row">
+              <strong>닉네임 수정</strong>
+              <input id="nicknameEditInput" type="text" value="${esc(user.nickname)}" maxlength="50" />
+              <button class="primary" onclick="updateNickname('${user.uid}')">저장</button>
+            </div>
+            <span class="mono" style="color:var(--muted);">생성: ${fmtDate(user.createdAtUtc)}</span>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn ${activeTab === 'wallets' ? 'active' : ''}" onclick="switchTab('wallets')">지갑 / 시드 조정</button>
+          <button class="tab-btn ${activeTab === 'holdings' ? 'active' : ''}" onclick="switchTab('holdings')">보유종목 (${scenario?.holdings?.length ?? 0})</button>
+          <button class="tab-btn ${activeTab === 'orders' ? 'active' : ''}" onclick="switchTab('orders')">주문 내역</button>
+          <button class="tab-btn ${activeTab === 'trades' ? 'active' : ''}" onclick="switchTab('trades')">체결 이력</button>
+        </div>
+        <div id="tabContent">불러오는 중...</div>
+      `;
+      body.innerHTML = tabHeader;
+      await renderTabContent(scenario);
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      renderDetail();
+    }
+
+    async function renderTabContent(scenario) {
+      const el = document.getElementById('tabContent');
+      if (!scenario) { el.innerHTML = '<div class="empty">시나리오가 없습니다.</div>'; return; }
+
+      if (activeTab === 'wallets') {
+        el.innerHTML = `
+          <div class="card" style="margin-bottom:12px;">
+            <div class="row">
+              <strong>시드머니 증감 (+/-)</strong>
+              <select id="adjustCurrency">
+                <option value="KRW">KRW</option>
+                <option value="USD">USD</option>
+              </select>
+              <input id="adjustAmount" type="number" step="any" placeholder="예: 500000 또는 -100000" style="width:200px;" />
+              <button class="primary" onclick="adjustBalance(${scenario.scenarioId})">적용</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Wallet ID</th><th>통화</th><th>예수가능금 (Available)</th><th>주문대기금 (Pending)</th></tr></thead>
+            <tbody>
+              ${scenario.wallets.map(w => `
+                <tr>
+                  <td class="mono">${w.walletId}</td>
+                  <td><strong>${esc(w.currency)}</strong></td>
+                  <td class="mono">${fmtNum(w.availableCash, 4)}</td>
+                  <td class="mono">${fmtNum(w.pendingCash, 4)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (activeTab === 'holdings') {
+        if (!scenario.holdings.length) { el.innerHTML = '<div class="empty">보유 종목이 없습니다.</div>'; return; }
+        el.innerHTML = `
+          <table>
+            <thead><tr><th>Holding ID</th><th>종목코드</th><th>보유수량</th><th>평균매수가</th></tr></thead>
+            <tbody>
+              ${scenario.holdings.map(h => `
+                <tr>
+                  <td class="mono">${h.holdingId}</td>
+                  <td class="mono"><strong>${esc(h.stockCode)}</strong></td>
+                  <td class="mono">${fmtNum(h.quantity, 0)}</td>
+                  <td class="mono">${fmtNum(h.averageBuyPrice, 4)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (activeTab === 'orders') {
+        try {
+          const paged = await apiFetch(`/api/admin/scenarios/${scenario.scenarioId}/orders?page=${scenarioOrdersPage}&pageSize=${PAGE_SIZE}`);
+          const orders = paged?.items ?? [];
+          scenarioOrdersPage = paged?.page ?? 1;
+          el.innerHTML = buildOrdersTableHtml(orders, false) +
+            buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goScenarioOrdersPage');
+        } catch (err) {
+          el.innerHTML = `<div class="empty">${esc(getErrorMessage(err))}</div>`;
+        }
+      } else if (activeTab === 'trades') {
+        try {
+          const paged = await apiFetch(`/api/admin/scenarios/${scenario.scenarioId}/trades?page=${scenarioTradesPage}&pageSize=${PAGE_SIZE}`);
+          const trades = paged?.items ?? [];
+          scenarioTradesPage = paged?.page ?? 1;
+          if (!trades.length) { el.innerHTML = '<div class="empty">체결 이력이 없습니다.</div>'; return; }
+          el.innerHTML = `
+            <table>
+              <thead><tr><th>TradeId</th><th>OrderId</th><th>종목</th><th>구분</th><th>체결가</th><th>체결수량</th><th>체결금액</th><th>체결시각</th></tr></thead>
+              <tbody>
+                ${trades.map(t => `
+                  <tr>
+                    <td class="mono">${t.tradeId}</td>
+                    <td class="mono">${t.orderId}</td>
+                    <td class="mono"><strong>${esc(t.stockCode)}</strong></td>
+                    <td><span class="badge ${t.side === 1 ? 'badge-buy' : 'badge-sell'}">${ORDER_SIDES[t.side] || t.side}</span></td>
+                    <td class="mono">${fmtNum(t.executedPrice, 4)}</td>
+                    <td class="mono">${t.executedQuantity}</td>
+                    <td class="mono">${fmtNum(t.totalAmount, 4)}</td>
+                    <td class="mono">${fmtDate(t.executedAtUtc)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            ${buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goScenarioTradesPage')}
+          `;
+        } catch (err) {
+          el.innerHTML = `<div class="empty">${esc(getErrorMessage(err))}</div>`;
+        }
+      }
+    }
+
+    async function updateNickname(uid) {
+      const nickname = getInputValue('nicknameEditInput').trim();
+      try {
+        await apiFetch(`/api/admin/users/${uid}`, 'PATCH', { nickname });
+        showToast('닉네임을 수정했어.');
+        await loadUsers();
+      } catch (err) {
+        showToast(getErrorMessage(err), true);
+      }
+    }
+
+    async function adjustBalance(scenarioId) {
+      const currency = getInputValue('adjustCurrency');
+      const amount = Number(getInputValue('adjustAmount'));
+      if (!amount) return showToast('0이 아닌 금액을 입력해주세요.', true);
+      try {
+        await apiFetch('/api/admin/wallets/adjust-balance', 'POST', { scenarioId, currency, amount });
+        showToast(`${currency} 잔고를 조정했어.`);
+        await loadUsers();
+      } catch (err) {
+        showToast(getErrorMessage(err), true);
+      }
+    }
+
+    async function cancelOrder(orderId) {
+      try {
+        await apiFetch(`/api/admin/orders/${orderId}/cancel`, 'POST');
+        showToast(`주문 #${orderId} 취소 완료`);
+        await loadUsers();
+      } catch (err) {
+        showToast(getErrorMessage(err), true);
+      }
+    }
+
+    let orderRefreshTimer = null;
+    function scheduleOrderRefresh() {
+      if (!getAdminKey()) return;
+      if (orderRefreshTimer) clearTimeout(orderRefreshTimer);
+      orderRefreshTimer = setTimeout(() => {
+        if (mainView === 'orders') {
+          renderGlobalOrders(true).catch(() => {});
+        } else {
+          loadUsers().catch(() => {});
+        }
+      }, 250);
+    }
+
+    function initAdminSignalR() {
+      if (typeof signalR === 'undefined') return;
+      const conn = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/quote')
+        .withAutomaticReconnect()
+        .build();
+
+      conn.on('ReceiveOrderUpdated', () => {
+        scheduleOrderRefresh();
+      });
+
+      const register = () => conn.invoke('RegisterOrderUpdates').catch(() => {});
+      conn.onreconnected(register);
+      conn.start().then(register).catch(() => {});
+    }
+
+    initAdminSignalR();
+    if (getAdminKey()) {
+      loadUsers();
+      loadForcedMatchingStatus();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "target": "ESNext"
+  },
+  "exclude": [
+    "bin",
+    "obj"
+  ]
+}
+
