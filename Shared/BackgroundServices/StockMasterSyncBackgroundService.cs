@@ -1,24 +1,35 @@
+using Microsoft.Extensions.Options;
 using StockLab.Services.Master;
+using StockLab.Settings;
 
 namespace StockLab.BackgroundServices;
 
 public class StockMasterSyncBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly KisSettings _kisSettings;
     private readonly ILogger<StockMasterSyncBackgroundService> _logger;
 
     private static readonly TimeZoneInfo KoreaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Korea Standard Time");
 
     public StockMasterSyncBackgroundService(
         IServiceProvider serviceProvider,
+        IOptions<KisSettings> kisOptions,
         ILogger<StockMasterSyncBackgroundService> logger)
     {
         _serviceProvider = serviceProvider;
+        _kisSettings = kisOptions.Value;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (string.IsNullOrWhiteSpace(_kisSettings.AppKey) || string.IsNullOrWhiteSpace(_kisSettings.AppSecret))
+        {
+            _logger.LogWarning("[마스터 스케줄러 중단] 로컬 KIS OpenAPI AppKey 또는 AppSecret이 설정되지 않아 스케줄러를 비활성화합니다.");
+            return;
+        }
+
         _logger.LogInformation("[마스터 스케줄러] KIS 공식 13회 일중 배포 스케줄러가 활성화되었습니다.");
 
         while (!stoppingToken.IsCancellationRequested)
