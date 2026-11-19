@@ -197,7 +197,7 @@
             <tr><th>닉네임</th><th>UID</th><th>타입</th><th>생성일</th></tr>
           </thead>
           <tbody id="userTableBody">
-            <tr><td colspan="4" class="empty">Admin Key를 입력하고 연결을 눌러줘.</td></tr>
+            <tr><td colspan="4" class="empty">Admin Key를 입력하고 연결을 눌러주세요.</td></tr>
           </tbody>
         </table>
       </div>
@@ -213,15 +213,17 @@
         </div>
       </div>
       <div class="detail-body" id="detailBody">
-        <div class="empty">좌측에서 유저를 선택하면 시나리오, 지갑, 보유종목, 주문/체결 내역을 보고 수정할 수 있어.</div>
+        <div class="empty">좌측에서 유저를 선택하면 시나리오, 지갑, 보유종목, 주문/체결 내역을 보고 수정할 수 있습니다.</div>
       </div>
     </section>
   </main>
 
   <div id="toast"></div>
 
+  <script src="/client-config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
   <script>
+    const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
     const KEY_STORAGE = 'stocklab_admin_key';
     const USER_TYPES = { 1: 'Guest', 2: 'Discord', 3: 'Local' };
     const ORDER_SIDES = { 1: '매수', 2: '매도' };
@@ -281,8 +283,9 @@
     async function apiFetch(url, method = 'GET', bodyObj = null) {
       const key = getAdminKey();
       if (!key) throw new Error('X-Admin-Key를 먼저 입력해주세요.');
-      const res = await fetch(url, {
+      const res = await fetch(buildServerUrl(url), {
         method,
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-Admin-Key': key
@@ -759,7 +762,7 @@
     function initAdminSignalR() {
       if (typeof signalR === 'undefined') return;
       const conn = new signalR.HubConnectionBuilder()
-        .withUrl('/hubs/quote')
+        .withUrl(buildServerUrl('/hubs/quote'), { withCredentials: true })
         .withAutomaticReconnect()
         .build();
 

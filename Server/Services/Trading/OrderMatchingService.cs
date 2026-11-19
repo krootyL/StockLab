@@ -5,11 +5,14 @@ using StockLab.Dtos;
 using StockLab.Hubs;
 using StockLab.Persistence;
 using StockLab.Persistence.Entities;
+using StockLab.Services.Kis;
 
 namespace StockLab.Services.Trading;
 
-public class OrderMatchingService
+public class OrderMatchingService : IRealtimeOrderBookConsumer
 {
+    public Task OnOrderBookReceivedAsync(RealtimeStockStatus status, CancellationToken cancellationToken = default)
+        => MatchByOrderBookAsync(status, cancellationToken);
     private const decimal TickLiquidityRatio = 0.10m;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> StockLocks = new(StringComparer.OrdinalIgnoreCase);
 

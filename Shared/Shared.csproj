@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Library</OutputType>
+		<RootNamespace>StockLab</RootNamespace>
+		<AssemblyName>StockLab.Shared</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+	</PropertyGroup>
+
+</Project>

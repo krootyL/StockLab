@@ -1,0 +1,710 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockLab - 내 페이지</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f1f5f9;
+            --border-color: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-primary: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #eff6ff;
+            --positive: #ef4444;
+            --positive-bg: #fef2f2;
+            --negative: #2563eb;
+            --negative-bg: #eff6ff;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --badge-kospi: #3b82f6;
+            --badge-kosdaq: #10b981;
+            --badge-usa: #f59e0b;
+            --badge-konex: #8b5cf6;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body.dark-mode {
+            --bg-primary: #090d16;
+            --bg-surface: #111827;
+            --bg-elevated: #1f2937;
+            --border-color: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-muted: #6b7280;
+            --accent-primary: #3b82f6;
+            --accent-hover: #60a5fa;
+            --accent-light: #1e293b;
+            --positive: #f87171;
+            --positive-bg: rgba(239, 68, 68, 0.14);
+            --negative: #60a5fa;
+            --negative-bg: rgba(59, 130, 246, 0.14);
+            --danger: #f87171;
+            --danger-bg: rgba(239, 68, 68, 0.14);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation */
+        header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        .logo-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-badge {
+            font-size: 0.7rem;
+            background-color: var(--accent-light);
+            color: var(--accent-primary);
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link-btn,
+        .btn-outline {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.5rem 0.85rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link-btn:hover,
+        .btn-outline:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--accent-light);
+            color: var(--accent-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            padding: 0.4rem 0.85rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.55rem 1.05rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-danger-ghost {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--danger);
+            border-radius: 6px;
+            padding: 0.35rem 0.65rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-danger-ghost:hover {
+            background-color: var(--danger-bg);
+            border-color: var(--danger);
+        }
+
+        /* Main Layout */
+        main {
+            max-width: 1280px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.75rem 1.5rem 3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card-section {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.4rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.15rem;
+        }
+
+        .section-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .count-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            background-color: var(--accent-light);
+            color: var(--accent-primary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+        }
+
+        .section-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .form-input,
+        .form-select {
+            background-color: var(--bg-primary);
+            border: 1.5px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.55rem 0.85rem;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            border-color: var(--accent-primary);
+        }
+
+        /* Guest Auth Banner */
+        .auth-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .auth-form-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .status-text {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Wallet Cards Grid */
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .wallet-card {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.15rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .wallet-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .currency-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            background-color: var(--accent-light);
+            color: var(--accent-primary);
+        }
+
+        .wallet-id-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .wallet-total {
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wallet-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .wallet-metric {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .wallet-metric-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .wallet-metric-value {
+            font-size: 0.92rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Watchlist Search Bar */
+        .watchlist-search-wrapper {
+            position: relative;
+            margin-bottom: 1.15rem;
+        }
+
+        .watchlist-search-row {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .watchlist-search-row .form-input {
+            flex: 1;
+        }
+
+        .search-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow-md);
+            max-height: 260px;
+            overflow-y: auto;
+            z-index: 30;
+            display: none;
+        }
+
+        .search-dropdown.open {
+            display: block;
+        }
+
+        .search-dropdown-item {
+            padding: 0.7rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 0.88rem;
+        }
+
+        .search-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-dropdown-item:hover {
+            background-color: var(--bg-elevated);
+        }
+
+        /* Watchlist Table */
+        .table-scroll {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 0.75rem 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            white-space: nowrap;
+            background-color: var(--bg-elevated);
+        }
+
+        td {
+            padding: 0.85rem 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: var(--bg-elevated);
+        }
+
+        .stock-code-cell {
+            font-family: monospace;
+            font-weight: 700;
+        }
+
+        .stock-name-cell {
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .price-up {
+            color: var(--positive);
+            font-weight: 700;
+        }
+
+        .price-down {
+            color: var(--negative);
+            font-weight: 700;
+        }
+
+        .price-flat {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .cache-pill {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            background-color: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2.25rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0.75rem 1rem;
+            }
+
+            main {
+                padding: 1.25rem 1rem 2.5rem;
+            }
+
+            .card-section {
+                padding: 1.1rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <header>
+        <div class="nav-container">
+            <a href="/Dashboard/index.html" class="logo-area">
+                <div class="logo-icon">S</div>
+                <div class="logo-title">StockLab</div>
+                <span class="logo-badge">My Page</span>
+            </a>
+            <div class="nav-actions">
+                <a href="/Dashboard/index.html" class="nav-link-btn">대시보드</a>
+                <div id="userSessionArea" class="nav-actions hidden">
+                    <span class="user-pill" id="userNicknameLabel">-</span>
+                    <button type="button" class="btn-outline" id="logoutBtn">로그아웃</button>
+                </div>
+                <button type="button" class="btn-outline" id="themeToggleBtn">
+                    <span id="themeIcon">🌙</span>
+                    <span id="themeLabel">다크 모드</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- 1. Guest Session Login Section (미로그인 시 노출) -->
+        <section class="card-section" id="guestAuthSection">
+            <div class="auth-banner">
+                <div>
+                    <h2 class="section-title">계정 로그인</h2>
+                    <p class="section-subtitle">게스트 세션을 시작하면 시나리오별 지갑과 관심종목이 계정에 저장됩니다.</p>
+                </div>
+                <div class="auth-form-row">
+                    <input type="text" class="form-input" id="guestNicknameInput" placeholder="닉네임 입력 (선택)" maxlength="30">
+                    <button type="button" class="btn-primary" id="guestLoginBtn">게스트 시작하기</button>
+                </div>
+            </div>
+            <p class="status-text" id="authStatusMessage"></p>
+        </section>
+
+        <!-- 2. Wallet List Section (내 지갑 리스트) -->
+        <section class="card-section" id="walletSection">
+            <div class="section-header">
+                <div>
+                    <div class="section-title-group">
+                        <h2 class="section-title">내 지갑 리스트</h2>
+                        <span class="count-badge" id="walletCountBadge">0개</span>
+                    </div>
+                    <p class="section-subtitle">선택한 시나리오의 통화별 주문 가능 금액과 주문 예약금을 확인합니다.</p>
+                </div>
+                <div class="section-controls">
+                    <select class="form-select" id="scenarioSelect" aria-label="시나리오 선택">
+                        <option value="">시나리오 선택</option>
+                    </select>
+                    <button type="button" class="btn-outline" id="refreshWalletBtn">새로고침</button>
+                </div>
+            </div>
+
+            <div class="wallet-grid" id="walletGrid">
+                <!--
+                지갑 카드 템플릿 예시:
+                <div class="wallet-card">
+                    <div class="wallet-card-top">
+                        <span class="currency-badge">KRW</span>
+                        <span class="wallet-id-text">#1</span>
+                    </div>
+                    <div class="wallet-total">1,000,000 KRW</div>
+                    <div class="wallet-breakdown">
+                        <div class="wallet-metric">
+                            <span class="wallet-metric-label">주문 가능 (Available)</span>
+                            <span class="wallet-metric-value">1,000,000</span>
+                        </div>
+                        <div class="wallet-metric">
+                            <span class="wallet-metric-label">주문 예약 (Pending)</span>
+                            <span class="wallet-metric-value">0</span>
+                        </div>
+                    </div>
+                </div>
+                -->
+            </div>
+
+            <div class="empty-state" id="walletEmptyState">
+                로그인 후 보유 중인 지갑 목록이 표시됩니다.
+            </div>
+        </section>
+
+        <!-- 3. Watchlist Section (내 관심종목 리스트) -->
+        <section class="card-section" id="watchlistSection">
+            <div class="section-header">
+                <div>
+                    <div class="section-title-group">
+                        <h2 class="section-title">내 관심종목</h2>
+                        <span class="count-badge" id="watchlistCountBadge">0개</span>
+                    </div>
+                    <p class="section-subtitle">계정에 저장된 관심종목의 시세 정보를 서버 인메모리 기준으로 즉시 표시합니다.</p>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn-outline" id="refreshWatchlistBtn">새로고침</button>
+                </div>
+            </div>
+
+            <!-- 관심종목 추가 검색바 -->
+            <div class="watchlist-search-wrapper">
+                <div class="watchlist-search-row">
+                    <input
+                        type="text"
+                        class="form-input"
+                        id="watchlistSearchInput"
+                        placeholder="추가할 종목명 또는 단축코드를 입력하세요 (예: 삼성전자, AAPL)..."
+                        autocomplete="off">
+                    <button type="button" class="btn-primary" id="watchlistSearchBtn">검색</button>
+                </div>
+                <div class="search-dropdown" id="watchlistSearchDropdown">
+                    <!-- 검색 결과 항목 동적 렌더링 영역 -->
+                </div>
+            </div>
+
+            <!-- 관심종목 목록 테이블 -->
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">심볼 / 코드</th>
+                            <th style="min-width: 180px; text-align: left;">종목명</th>
+                            <th style="width: 120px;">시장 / 거래소</th>
+                            <th style="width: 140px;">현재가 / 기준가</th>
+                            <th style="width: 150px;">전일대비</th>
+                            <th style="width: 110px;">시세 출처</th>
+                            <th style="width: 90px;">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="watchlistTableBody">
+                        <!-- 관심종목 행 동적 렌더링 영역 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" id="watchlistEmptyState">
+                등록된 관심종목이 없습니다. 위 검색창에서 종목을 추가해보세요.
+            </div>
+        </section>
+    </main>
+
+    <script src="/client-config.js"></script>
+    <script>
+        // @ts-nocheck
+        const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
+
+        // === DOM 요소 참조 ===
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeLabel = document.getElementById('themeLabel');
+
+        const userSessionArea = document.getElementById('userSessionArea');
+        const userNicknameLabel = document.getElementById('userNicknameLabel');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const guestAuthSection = document.getElementById('guestAuthSection');
+        const guestNicknameInput = document.getElementById('guestNicknameInput');
+        const guestLoginBtn = document.getElementById('guestLoginBtn');
+        const authStatusMessage = document.getElementById('authStatusMessage');
+
+        const scenarioSelect = document.getElementById('scenarioSelect');
+        const refreshWalletBtn = document.getElementById('refreshWalletBtn');
+        const walletCountBadge = document.getElementById('walletCountBadge');
+        const walletGrid = document.getElementById('walletGrid');
+        const walletEmptyState = document.getElementById('walletEmptyState');
+
+        const refreshWatchlistBtn = document.getElementById('refreshWatchlistBtn');
+        const watchlistCountBadge = document.getElementById('watchlistCountBadge');
+        const watchlistSearchInput = document.getElementById('watchlistSearchInput');
+        const watchlistSearchBtn = document.getElementById('watchlistSearchBtn');
+        const watchlistSearchDropdown = document.getElementById('watchlistSearchDropdown');
+        const watchlistTableBody = document.getElementById('watchlistTableBody');
+        const watchlistEmptyState = document.getElementById('watchlistEmptyState');
+
+        // === TODO: 기능 구현 영역 ===
+        // 1. 테마 전환: initTheme(), toggleTheme()
+        // 2. 인증/세션: loadProfile() -> GET /api/auth/me, loginAsGuest() -> POST /api/auth/guest, logout() -> POST /api/auth/logout
+        // 3. 지갑 렌더링: renderScenarioOptions(scenarios), renderWallets(wallets)
+        // 4. 관심종목 CRUD: loadWatchlist() -> GET /api/watchlist, searchStocks(query) -> GET /api/stocks/search,
+        //                   addWatchlist(stockCode) -> POST /api/watchlist, removeWatchlist(stockCode) -> DELETE /api/watchlist/{code}
+    </script>
+</body>
+</html>

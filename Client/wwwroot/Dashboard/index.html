@@ -1001,9 +1001,11 @@
         <p>StockLab - High-Performance Real-Time Simulation Trading Platform | Powered by ASP.NET Core (.NET 10.0)</p>
     </footer>
 
+    <script src="/client-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
     <script>
         // @ts-nocheck
+        const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
         // Theme Management
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
@@ -1407,7 +1409,7 @@
             }
         }
 
-        // SignalR Hub 연결
+        // SignalR Hub 연결 (클라이언트 자체 KIS 웹소켓 중계)
         const quoteHubConnection = new signalR.HubConnectionBuilder()
             .withUrl('/hubs/quote')
             .withAutomaticReconnect()

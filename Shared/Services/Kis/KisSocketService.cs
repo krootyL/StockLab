@@ -409,8 +409,11 @@ public class KisSocketService : IHostedService
             try
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
-                var matchingService = scope.ServiceProvider.GetRequiredService<OrderMatchingService>();
-                await matchingService.MatchByOrderBookAsync(status);
+                var consumer = scope.ServiceProvider.GetService<IRealtimeOrderBookConsumer>();
+                if (consumer != null)
+                {
+                    await consumer.OnOrderBookReceivedAsync(status);
+                }
             }
             catch (Exception ex)
             {

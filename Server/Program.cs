@@ -33,9 +33,27 @@ builder.Services.Configure<KisSettings>(options =>
 
 // 2. 서비스 등록
 builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(2));
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(StockLab.Controllers.StockController).Assembly);
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
+
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+if (allowedOrigins is not { Length: > 0 })
+{
+    allowedOrigins = ["http://localhost:5187", "https://localhost:7212"];
+}
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ClientOrigins", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 builder.Services.AddMemoryCache();
 
@@ -68,6 +86,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<GuestAuthService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<OrderMatchingService>();
+builder.Services.AddScoped<IRealtimeOrderBookConsumer>(sp => sp.GetRequiredService<OrderMatchingService>());
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<TrafficSimulationService>();
 builder.Services.AddSingleton<KisRateLimiter>();
@@ -152,7 +171,7 @@ else
     }
 }
 
-// 4. HTTP 요청 파이프라인 구성
+// 4. HTTP 요청 파이프라인 구성 (순수 API + SignalR 서버)
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -160,17 +179,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseCors("ClientOrigins");
 app.UseHttpsRedirection();
-
-// 정적 대시보드 웹 서빙 (wwwroot/Dashboard/index.html)
-app.UseDefaultFiles();
-app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Redirect("/Dashboard/index.html"));
-app.MapGet("/admin", () => Results.Redirect("/Admin/index.html"));
 app.MapControllers();
 app.MapHub<StockQuoteHub>("/hubs/quote");
 
