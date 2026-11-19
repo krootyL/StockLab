@@ -34,6 +34,12 @@ public class KisSessionService
 
     public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
+        // 0. 설정값 최우선 검증 (키 누락 시 메모리/파일 캐시 토큰 재사용도 전면 차단)
+        if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
+        {
+            throw new StockLabException(ErrorCode.KisConfigMissing, "로컬 KIS OpenAPI AppKey 또는 AppSecret이 설정되지 않아 접근이 제한됩니다.");
+        }
+
         // 1. 메모리 캐시 확인
         if (_cache.TryGetValue(CacheKey, out string? cachedToken) && !string.IsNullOrWhiteSpace(cachedToken))
         {
@@ -47,12 +53,6 @@ public class KisSessionService
             SetMemoryCache(fileToken, fileExpiresAt);
             _logger.LogInformation("[파일 캐시] 저장된 .kis_token.json 파일에서 토큰 복원 완료 (만료 예정: {ExpiresAt:yyyy-MM-dd HH:mm:ss})", fileExpiresAt);
             return fileToken;
-        }
-
-        // 설정값 사전 검증
-        if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
-        {
-            throw new StockLabException(ErrorCode.KisConfigMissing, "KIS OpenAPI AppKey 또는 AppSecret 환경변수 설정이 누락되었습니다.");
         }
 
         // 3. 증권사 신규 발급 요청
@@ -112,14 +112,14 @@ public class KisSessionService
 
     public async Task<string> GetWebSocketApprovalKeyAsync(CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
+        {
+            throw new StockLabException(ErrorCode.KisConfigMissing, "로컬 KIS OpenAPI AppKey 또는 AppSecret이 설정되지 않아 접근이 제한됩니다.");
+        }
+
         if (!string.IsNullOrWhiteSpace(_approvalKey))
         {
             return _approvalKey;
-        }
-
-        if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
-        {
-            throw new StockLabException(ErrorCode.KisConfigMissing, "KIS OpenAPI AppKey 또는 AppSecret 환경변수 설정이 누락되었습니다.");
         }
 
         _logger.LogInformation("{Prefix} 실시간 WebSocket 접속키(Approval Key) 발급 요청 (POST /oauth2/Approval)", LogConstants.KisApiPrefix);

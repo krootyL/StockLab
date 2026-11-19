@@ -34,7 +34,7 @@ public static class ErrorCodeExtensions
         ErrorCode.StockNotFound => HttpStatusCode.NotFound,
         ErrorCode.AccountNotFound => HttpStatusCode.NotFound,
         ErrorCode.ConcurrencyConflict => HttpStatusCode.Conflict,
-        ErrorCode.KisConfigMissing => HttpStatusCode.InternalServerError,
+        ErrorCode.KisConfigMissing => HttpStatusCode.Forbidden,
         ErrorCode.KisAuthFailed => HttpStatusCode.BadGateway,
         _ => HttpStatusCode.InternalServerError
     };
@@ -48,7 +48,7 @@ public static class ErrorCodeExtensions
         ErrorCode.StockNotFound => "요청한 종목 정보를 찾을 수 없습니다.",
         ErrorCode.AccountNotFound => "계좌 정보를 찾을 수 없습니다.",
         ErrorCode.ConcurrencyConflict => "동시 요청 충돌이 발생했습니다. 다시 시도해 주세요.",
-        ErrorCode.KisConfigMissing => "KIS OpenAPI 인증 설정이 누락되었습니다.",
+        ErrorCode.KisConfigMissing => "KIS OpenAPI AppKey 또는 AppSecret 설정이 누락되어 접근이 제한됩니다.",
         ErrorCode.KisAuthFailed => "KIS OpenAPI 인증 토큰 발급에 실패했습니다.",
         _ => "서버 내부 오류가 발생했습니다."
     };

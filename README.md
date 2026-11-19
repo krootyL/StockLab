@@ -120,7 +120,7 @@
    * PostgreSQL 18 (대상 데이터베이스 생성 필요)
    * 한국투자증권(KIS) OpenAPI 계좌 및 `AppKey` / `AppSecret`
 2. **외부 시크릿 분리 주입**:
-   * **OS 환경변수**: KIS OpenAPI `AppKey` / `AppSecret` 설정 (클라이언트 전용 키 우선 지원, 미설정 시 공통 키 폴백)
+   * **OS 환경변수**: KIS OpenAPI `AppKey` / `AppSecret` 설정 (폴백 없음 — 사용자 로컬 키 미설정 시 클라이언트 접근 전면 제한)
    * **.NET User Secrets**: PostgreSQL 연결 문자열 및 관리자 인증 키 설정 (`dotnet user-secrets` 활용)
 3. **도구 복원 및 실행**:
    ```powershell
