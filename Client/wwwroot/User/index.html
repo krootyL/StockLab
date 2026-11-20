@@ -128,7 +128,7 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 0.65rem;
+            gap: 1rem;
             flex-wrap: wrap;
         }
 
@@ -153,17 +153,129 @@
             border-color: var(--accent-primary);
         }
 
+        .nav-link-admin {
+            border-color: rgba(239, 68, 68, 0.45);
+            color: #dc2626;
+        }
+
+        body.dark-mode .nav-link-admin {
+            color: #f87171;
+        }
+
+        .session-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            padding: 0.25rem 0.4rem 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .session-timer {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-primary);
+        }
+
+        .btn-extend {
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--accent-primary);
+            border-radius: 9999px;
+            padding: 0.22rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-extend:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .btn-session-logout {
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            border-radius: 9999px;
+            padding: 0.22rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-session-logout:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .user-pill-link {
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Sliding Emoji Theme Toggle */
+        .theme-switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 62px;
+            height: 32px;
+            padding: 3px;
+            border-radius: 9999px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+
+        .theme-switch:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .theme-switch-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-mode .theme-switch-thumb {
+            transform: translateX(30px);
+        }
+
+        .theme-switch-icon {
+            position: relative;
+            z-index: 1;
+            width: 24px;
+            text-align: center;
+            font-size: 0.85rem;
+            line-height: 1;
+            user-select: none;
+        }
+
         .user-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             background: var(--accent-light);
             color: var(--accent-primary);
-            border: 1px solid var(--border-color);
+            border: none;
             border-radius: 9999px;
-            padding: 0.4rem 0.85rem;
             font-size: 0.82rem;
-            font-weight: 600;
+            font-weight: 700;
+        }
+
+        .user-pill-link:hover {
+            opacity: 0.85;
         }
 
         .btn-primary {
@@ -533,14 +645,17 @@
                 <span class="logo-badge">My Page</span>
             </a>
             <div class="nav-actions">
-                <a href="/Dashboard/index.html" class="nav-link-btn">대시보드</a>
-                <div id="userSessionArea" class="nav-actions hidden">
-                    <span class="user-pill" id="userNicknameLabel">-</span>
-                    <button type="button" class="btn-outline" id="logoutBtn">로그아웃</button>
+                <a href="/Admin/index.html" id="adminPageLink" class="nav-link-btn nav-link-admin hidden">관리자</a>
+                <div class="session-pill hidden" id="userSessionArea">
+                    <a href="/User/index.html" class="user-pill user-pill-link" id="userNicknameLabel" style="padding: 0.2rem 0.6rem;">-</a>
+                    <span>세션 <span class="session-timer" id="navSessionTimer">30:00</span></span>
+                    <button type="button" class="btn-extend" id="extendSessionBtn">연장</button>
+                    <button type="button" class="btn-session-logout" id="logoutBtn">로그아웃</button>
                 </div>
-                <button type="button" class="btn-outline" id="themeToggleBtn">
-                    <span id="themeIcon">🌙</span>
-                    <span id="themeLabel">다크 모드</span>
+                <button type="button" class="theme-switch" id="themeToggleBtn" aria-label="테마 전환" title="라이트 / 다크 모드 전환">
+                    <span class="theme-switch-thumb"></span>
+                    <span class="theme-switch-icon">☀️</span>
+                    <span class="theme-switch-icon">🌙</span>
                 </button>
             </div>
         </div>
@@ -548,22 +663,7 @@
 
     <!-- Main Content -->
     <main>
-        <!-- 1. Guest Session Login Section (미로그인 시 노출) -->
-        <section class="card-section" id="guestAuthSection">
-            <div class="auth-banner">
-                <div>
-                    <h2 class="section-title">계정 로그인</h2>
-                    <p class="section-subtitle">게스트 세션을 시작하면 시나리오별 지갑과 관심종목이 계정에 저장됩니다.</p>
-                </div>
-                <div class="auth-form-row">
-                    <input type="text" class="form-input" id="guestNicknameInput" placeholder="닉네임 입력 (선택)" maxlength="30">
-                    <button type="button" class="btn-primary" id="guestLoginBtn">게스트 시작하기</button>
-                </div>
-            </div>
-            <p class="status-text" id="authStatusMessage"></p>
-        </section>
-
-        <!-- 2. Wallet List Section (내 지갑 리스트) -->
+        <!-- 1. Wallet List Section (내 지갑 리스트) -->
         <section class="card-section" id="walletSection">
             <div class="section-header">
                 <div>
@@ -670,20 +770,15 @@
     <script>
         // @ts-nocheck
         const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
+        const ADMIN_USER_TYPE = 99;
 
-        // === DOM 요소 참조 ===
         const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const themeIcon = document.getElementById('themeIcon');
-        const themeLabel = document.getElementById('themeLabel');
-
+        const adminPageLink = document.getElementById('adminPageLink');
         const userSessionArea = document.getElementById('userSessionArea');
         const userNicknameLabel = document.getElementById('userNicknameLabel');
+        const navSessionTimer = document.getElementById('navSessionTimer');
+        const extendSessionBtn = document.getElementById('extendSessionBtn');
         const logoutBtn = document.getElementById('logoutBtn');
-
-        const guestAuthSection = document.getElementById('guestAuthSection');
-        const guestNicknameInput = document.getElementById('guestNicknameInput');
-        const guestLoginBtn = document.getElementById('guestLoginBtn');
-        const authStatusMessage = document.getElementById('authStatusMessage');
 
         const scenarioSelect = document.getElementById('scenarioSelect');
         const refreshWalletBtn = document.getElementById('refreshWalletBtn');
@@ -691,20 +786,165 @@
         const walletGrid = document.getElementById('walletGrid');
         const walletEmptyState = document.getElementById('walletEmptyState');
 
-        const refreshWatchlistBtn = document.getElementById('refreshWatchlistBtn');
-        const watchlistCountBadge = document.getElementById('watchlistCountBadge');
-        const watchlistSearchInput = document.getElementById('watchlistSearchInput');
-        const watchlistSearchBtn = document.getElementById('watchlistSearchBtn');
-        const watchlistSearchDropdown = document.getElementById('watchlistSearchDropdown');
-        const watchlistTableBody = document.getElementById('watchlistTableBody');
-        const watchlistEmptyState = document.getElementById('watchlistEmptyState');
+        let currentProfile = null;
+        let sessionExpiresAtMs = null;
+        let sessionTimerId = null;
 
-        // === TODO: 기능 구현 영역 ===
-        // 1. 테마 전환: initTheme(), toggleTheme()
-        // 2. 인증/세션: loadProfile() -> GET /api/auth/me, loginAsGuest() -> POST /api/auth/guest, logout() -> POST /api/auth/logout
-        // 3. 지갑 렌더링: renderScenarioOptions(scenarios), renderWallets(wallets)
-        // 4. 관심종목 CRUD: loadWatchlist() -> GET /api/watchlist, searchStocks(query) -> GET /api/stocks/search,
-        //                   addWatchlist(stockCode) -> POST /api/watchlist, removeWatchlist(stockCode) -> DELETE /api/watchlist/{code}
+        // 1. 테마 초기화 및 슬라이드 전환
+        function initTheme() {
+            const saved = localStorage.getItem('stocklab-theme') || 'light';
+            if (saved === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+            themeToggleBtn.addEventListener('click', () => {
+                const isDark = document.body.classList.toggle('dark-mode');
+                localStorage.setItem('stocklab-theme', isDark ? 'dark' : 'light');
+            });
+        }
+
+        function startSessionCountdown(expiresIso) {
+            sessionExpiresAtMs = expiresIso ? new Date(expiresIso).getTime() : (Date.now() + 30 * 60 * 1000);
+            if (sessionTimerId) clearInterval(sessionTimerId);
+
+            const renderTick = () => {
+                const remainingSec = Math.max(0, Math.floor((sessionExpiresAtMs - Date.now()) / 1000));
+                const mm = String(Math.floor(remainingSec / 60)).padStart(2, '0');
+                const ss = String(remainingSec % 60).padStart(2, '0');
+                navSessionTimer.textContent = `${mm}:${ss}`;
+                if (remainingSec <= 0) {
+                    clearInterval(sessionTimerId);
+                    alert('유효 세션 시간이 만료되어 다시 로그인이 필요합니다.');
+                    window.location.replace('/Auth/index.html');
+                }
+            };
+
+            renderTick();
+            sessionTimerId = setInterval(renderTick, 1000);
+        }
+
+        extendSessionBtn.addEventListener('click', async () => {
+            extendSessionBtn.disabled = true;
+            try {
+                const res = await fetch(buildServerUrl('/api/auth/extend'), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json?.success && json.data?.sessionExpiresAtUtc) {
+                        startSessionCountdown(json.data.sessionExpiresAtUtc);
+                    }
+                } else {
+                    alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
+                    window.location.replace('/Auth/index.html');
+                }
+            } finally {
+                extendSessionBtn.disabled = false;
+            }
+        });
+
+        // 2. 로그인 세션 검증 및 프로필 로드 (미로그인 시 대문으로 이동, 관리자 99만 관리자 버튼 노출)
+        async function loadProfile() {
+            try {
+                const res = await fetch(buildServerUrl('/api/auth/me'), { credentials: 'include' });
+                if (!res.ok) {
+                    alert('로그인이 필요한 서비스입니다.');
+                    window.location.replace('/Auth/index.html');
+                    return;
+                }
+                const json = await res.json();
+                if (!json || !json.success || !json.data) {
+                    alert('로그인이 필요한 서비스입니다.');
+                    window.location.replace('/Auth/index.html');
+                    return;
+                }
+
+                currentProfile = json.data;
+                userNicknameLabel.textContent = currentProfile.nickname || '사용자';
+                userSessionArea.classList.remove('hidden');
+                startSessionCountdown(currentProfile.sessionExpiresAtUtc);
+
+                if (Number(currentProfile.type) === ADMIN_USER_TYPE) {
+                    adminPageLink.classList.remove('hidden');
+                }
+
+                renderScenarioOptions(currentProfile.scenarios || []);
+            } catch {
+                window.location.replace('/Auth/index.html');
+            }
+        }
+
+        // 3. 시나리오 및 지갑 렌더링
+        function renderScenarioOptions(scenarios) {
+            scenarioSelect.innerHTML = '';
+            if (!scenarios.length) {
+                scenarioSelect.innerHTML = '<option value="">시나리오 없음</option>';
+                renderWallets([]);
+                return;
+            }
+
+            scenarios.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = String(s.scenarioId);
+                opt.textContent = s.name;
+                scenarioSelect.appendChild(opt);
+            });
+
+            renderWallets(scenarios[0].wallets || []);
+        }
+
+        function renderWallets(wallets) {
+            walletGrid.innerHTML = '';
+            walletCountBadge.textContent = `${wallets.length}개`;
+            if (!wallets.length) {
+                walletEmptyState.classList.remove('hidden');
+                return;
+            }
+            walletEmptyState.classList.add('hidden');
+
+            wallets.forEach(w => {
+                const total = Number(w.availableCash || 0) + Number(w.pendingCash || 0);
+                const card = document.createElement('div');
+                card.className = 'wallet-card';
+                card.innerHTML = `
+                    <div class="wallet-card-top">
+                        <span class="currency-badge">${w.currency}</span>
+                        <span class="wallet-id-text">#${w.walletId}</span>
+                    </div>
+                    <div class="wallet-total">${total.toLocaleString()} ${w.currency}</div>
+                    <div class="wallet-breakdown">
+                        <div class="wallet-metric">
+                            <span class="wallet-metric-label">주문 가능 (Available)</span>
+                            <span class="wallet-metric-value">${Number(w.availableCash || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="wallet-metric">
+                            <span class="wallet-metric-label">주문 예약 (Pending)</span>
+                            <span class="wallet-metric-value">${Number(w.pendingCash || 0).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                walletGrid.appendChild(card);
+            });
+        }
+
+        scenarioSelect.addEventListener('change', () => {
+            if (!currentProfile) return;
+            const selected = (currentProfile.scenarios || []).find(s => String(s.scenarioId) === scenarioSelect.value);
+            renderWallets(selected ? (selected.wallets || []) : []);
+        });
+
+        refreshWalletBtn.addEventListener('click', loadProfile);
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch(buildServerUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
+            } finally {
+                window.location.replace('/Auth/index.html');
+            }
+        });
+
+        initTheme();
+        loadProfile();
     </script>
 </body>
 </html>

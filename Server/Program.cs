@@ -129,6 +129,14 @@ else
         var pendingList = app.Services.GetRequiredService<PendingList>();
         var pendingStockCount = await pendingList.SyncFromDatabaseAsync(db);
         logger.LogInformation("[초기화] PendingList 초기 DB 동기화 완료 (미체결 보유 종목={StockCount})", pendingStockCount);
+
+        var authService = scope.ServiceProvider.GetRequiredService<GuestAuthService>();
+        var adminLoginId = app.Configuration["Admin:LoginId"];
+        var adminPass = app.Configuration["Admin:Password"];
+        if (!string.IsNullOrWhiteSpace(adminLoginId) && !string.IsNullOrWhiteSpace(adminPass))
+        {
+            await authService.EnsureAdminAccountAsync(adminLoginId, adminPass);
+        }
     }
     catch (Exception ex)
     {

@@ -2,9 +2,10 @@ namespace StockLab.Persistence.Entities;
 
 public enum UserType
 {
-    Guest = 1,
-    Discord = 2,
-    Local = 3
+    Local = 1,   // 사이트 직접 가입 계정
+    Discord = 2, // 디스코드 OAuth2 인증 계정
+    // 3 = 추후 Naver, Google, Email 등 추가 인증 수단 예약
+    Admin = 99   // 개발자 / 관리자 특수계정
 }
 
 public enum OrderSide

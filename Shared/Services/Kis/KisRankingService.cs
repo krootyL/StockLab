@@ -74,7 +74,7 @@ public class KisRankingService
     }
 
     /// <summary>
-    /// 시장별(ALL, KR, KOSPI, KOSDAQ, US/USA, KONEX 및 콤마 다중 선택) 실시간 거래대금/거래량 상위 종목 조회
+    /// 시장별(ALL, KR, KOSPI, KOSDAQ, US/USA, KONEX 및 콤마 다중 선택) 캐시된 실시간 순위 풀 반환 (정렬·개수 제한은 클라이언트에서 수행)
     /// </summary>
     public async Task<IReadOnlyList<PopularStockItem>> GetPopularStocksAsync(
         string market = "ALL",
@@ -91,7 +91,7 @@ public class KisRankingService
 
         if (tokens.Count == 0 || tokens.Contains("ALL"))
         {
-            return await GetAllVolumeRankTop20Async(isValueSort, cancellationToken);
+            return await GetAllVolumeRankPoolAsync(isValueSort, cancellationToken);
         }
 
         if (tokens.Count == 1)
@@ -102,14 +102,7 @@ public class KisRankingService
         var tasks = tokens.Select(m => FetchSingleMarketAsync(m, isValueSort, cancellationToken));
         var results = await Task.WhenAll(tasks);
 
-        return results
-            .SelectMany(list => list)
-            .GroupBy(item => item.StockCode, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .OrderByDescending(x => GetSortScore(x, isValueSort))
-            .Take(20)
-            .Select((item, idx) => item with { Rank = idx + 1 })
-            .ToList();
+        return results.SelectMany(list => list).ToList();
     }
 
     private Task<IReadOnlyList<PopularStockItem>> FetchSingleMarketAsync(string market, bool isValueSort, CancellationToken cancellationToken)
@@ -119,9 +112,10 @@ public class KisRankingService
             "KR" => GetKrVolumeRankTop20Async("0000", CacheKeyKr, isValueSort, cancellationToken),
             "KOSPI" => GetKrVolumeRankTop20Async("0001", CacheKeyKospi, isValueSort, cancellationToken),
             "KOSDAQ" => GetKrVolumeRankTop20Async("1001", CacheKeyKosdaq, isValueSort, cancellationToken),
-            "US" or "USA" => GetUsVolumeRankTop20Async(isValueSort, cancellationToken),
+            "US" or "USA" => GetUsVolumeRankTop20Async(isValueSort, "NAS", cancellationToken),
+            "NAS" or "NYS" or "AMS" => GetUsVolumeRankTop20Async(isValueSort, market, cancellationToken),
             "KONEX" => GetKonexPopularStocksAsync(cancellationToken),
-            _ => GetAllVolumeRankTop20Async(isValueSort, cancellationToken)
+            _ => GetAllVolumeRankPoolAsync(isValueSort, cancellationToken)
         };
     }
 
@@ -200,7 +194,7 @@ public class KisRankingService
                 return null;
             }
 
-            var topItems = rankResult.Output.Take(20).ToList();
+            var topItems = rankResult.Output.Take(50).ToList();
             var masterMap = await _store.GetByCodesAsync(topItems.Select(x => x.StockCode), ct);
             var list = new List<PopularStockItem>(topItems.Count);
             int rank = 1;
@@ -275,21 +269,29 @@ public class KisRankingService
     }
 
     /// <summary>
-    /// 해외(미국) 주식 실시간 거래대금/거래량 순위 (Top 20)
+    /// 해외(미국) 주식 실시간 거래대금/거래량 순위 (Top 20, 거래소코드: NAS=나스닥, NYS=뉴욕, AMS=아멕스)
     /// </summary>
     public Task<IReadOnlyList<PopularStockItem>> GetUsVolumeRankTop20Async(
         bool isValueSort = true,
+        string exchangeCode = "NAS",
         CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"{CacheKeyUs}_{(isValueSort ? "VALUE" : "VOLUME")}";
+        var normalizedExcd = exchangeCode.Trim().ToUpperInvariant();
+        if (normalizedExcd is not ("NAS" or "NYS" or "AMS"))
+        {
+            normalizedExcd = "NAS";
+        }
+
+        var cacheKey = $"{CacheKeyUs}_{normalizedExcd}_{(isValueSort ? "VALUE" : "VOLUME")}";
         return GetOrRefreshRankingAsync(
             cacheKey,
-            ct => FetchUsFromKisAsync(isValueSort, ct),
-            () => GetFallbackUsPopularStocksAsync(cancellationToken));
+            ct => FetchUsFromKisAsync(isValueSort, normalizedExcd, ct),
+            () => GetFallbackUsPopularStocksAsync(normalizedExcd, cancellationToken));
     }
 
     private async Task<RankingCacheEntry?> FetchUsFromKisAsync(
         bool isValueSort,
+        string exchangeCode,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
@@ -302,10 +304,9 @@ public class KisRankingService
             var isMarketOpen = IsUsMarketOpen(DateTime.UtcNow);
             var token = await _tokenService.GetAccessTokenAsync(ct);
 
-            // 나스닥(NAS) 기준 거래대금(trade-pbmn) 또는 거래량(trade-vol) 순위 호출
             var endpointPath = isValueSort ? "trade-pbmn" : "trade-vol";
             var trId = isValueSort ? "HHDFS76320010" : "HHDFS76310010";
-            var requestUrl = $"{_settings.RestBaseUrl}/uapi/overseas-stock/v1/ranking/{endpointPath}?AUTH=&EXCD=NAS&NDAY=0&VOL_RANG=0&KEYB=&PRC1=&PRC2=";
+            var requestUrl = $"{_settings.RestBaseUrl}/uapi/overseas-stock/v1/ranking/{endpointPath}?AUTH=&EXCD={exchangeCode}&NDAY=0&VOL_RANG=0&KEYB=&PRC1=&PRC2=";
 
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -340,7 +341,7 @@ public class KisRankingService
             var list = new List<PopularStockItem>(rankResult.Output.Count);
             int rank = 1;
 
-            var topItems = rankResult.Output.Take(20).ToList();
+            var topItems = rankResult.Output.Take(50).ToList();
             var tickers = topItems
                 .Select(x => string.IsNullOrWhiteSpace(x.Symbol) ? x.RealSymbol : x.Symbol)
                 .Where(t => !string.IsNullOrWhiteSpace(t));
@@ -381,7 +382,7 @@ public class KisRankingService
                     ChangeRate: changeRate,
                     Volume: volume,
                     MarketType: "USA",
-                    ExchangeCode: master?.ExchangeCode ?? "NAS",
+                    ExchangeCode: master?.ExchangeCode ?? exchangeCode,
                     Currency: "USD",
                     TradingValue: tradingValue
                 );
@@ -498,32 +499,26 @@ public class KisRankingService
     }
 
     /// <summary>
-    /// 국내 + 해외 통합 실시간 인기 종목 (Top 20, 거래대금 또는 거래량 내림차순)
+    /// 국내 + 해외 캐시된 실시간 순위 풀 통합 반환 (정렬 없이 원본 캐시 풀 합산)
     /// </summary>
-    public async Task<IReadOnlyList<PopularStockItem>> GetAllVolumeRankTop20Async(
+    public async Task<IReadOnlyList<PopularStockItem>> GetAllVolumeRankPoolAsync(
         bool isValueSort = true,
         CancellationToken cancellationToken = default)
     {
         var krTask = GetKrVolumeRankTop20Async("0000", CacheKeyKr, isValueSort, cancellationToken);
-        var usTask = GetUsVolumeRankTop20Async(isValueSort, cancellationToken);
+        var usTask = GetUsVolumeRankTop20Async(isValueSort, "NAS", cancellationToken);
 
         await Task.WhenAll(krTask, usTask);
 
         var krList = await krTask;
         var usList = await usTask;
 
-        // 시장 구분 없이 선택된 정렬 기준(거래대금 또는 거래량) 내림차순으로 Top 20 정렬
-        return krList
-            .Concat(usList)
-            .OrderByDescending(x => GetSortScore(x, isValueSort))
-            .Take(20)
-            .Select((item, idx) => item with { Rank = idx + 1 })
-            .ToList();
+        return krList.Concat(usList).ToList();
     }
 
     private async Task<IReadOnlyList<PopularStockItem>> GetKonexPopularStocksAsync(CancellationToken cancellationToken)
     {
-        var items = await _store.GetByMarketAsync("KONEX", 20, cancellationToken);
+        var items = await _store.GetByMarketAsync("KONEX", 50, cancellationToken);
         return items
             .Select((master, idx) => new PopularStockItem(
                 Rank: idx + 1,
@@ -588,30 +583,19 @@ public class KisRankingService
     /// <summary>
     /// 미국 대표 대장주 Fallback
     /// </summary>
-    private async Task<IReadOnlyList<PopularStockItem>> GetFallbackUsPopularStocksAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<PopularStockItem>> GetFallbackUsPopularStocksAsync(
+        string exchangeCode,
+        CancellationToken cancellationToken)
     {
-        var usTickers = new[]
+        var usTickers = exchangeCode switch
         {
-            "TSLA", // 테슬라
-            "AAPL", // 애플
-            "NVDA", // 엔비디아
-            "MSFT", // 마이크로소프트
-            "AMZN", // 아마존
-            "GOOGL",// 알파벳 A
-            "META", // 메타
-            "AMD",  // AMD
-            "PLTR", // 팔란티어
-            "QQQ",  // 인베스코 QQQ
-            "AVGO", // 브로드컴
-            "NFLX", // 넷플릭스
-            "MU",   // 마이크론
-            "INTC", // 인텔
-            "ARM",  // ARM
-            "COIN", // 코인베이스
-            "SOXL", // 디렉시온 반도체 3배
-            "TQQQ", // 프로셰어즈 나스닥 3배
-            "SPY",  // SPDR S&P500
-            "COST"  // 코스트코
+            "NYS" => new[] { "TSM", "BRK.B", "JPM", "V", "MA", "WMT", "JNJ", "UNH", "DIS", "KO", "BA", "NKE", "MCD", "CRM", "ORCL" },
+            "AMS" => new[] { "SPY", "IVV", "VOO", "DIA", "IWM", "SOXL", "XLF", "XLE", "GLD", "SLV" },
+            _ => new[]
+            {
+                "TSLA", "AAPL", "NVDA", "MSFT", "AMZN", "GOOGL", "META", "AMD", "PLTR", "QQQ",
+                "AVGO", "NFLX", "MU", "INTC", "ARM", "COIN", "SOXL", "TQQQ", "SPY", "COST"
+            }
         };
 
         var masterMap = await _store.GetByCodesAsync(usTickers, cancellationToken);
@@ -630,7 +614,7 @@ public class KisRankingService
                 ChangeRate: 0,
                 Volume: 0,
                 MarketType: "USA",
-                ExchangeCode: master?.ExchangeCode ?? "NAS",
+                ExchangeCode: master?.ExchangeCode ?? exchangeCode,
                 Currency: "USD"
             ));
         }

@@ -136,6 +136,580 @@
             border-color: var(--accent-primary);
         }
 
+        .nav-link-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.5rem 0.85rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .nav-link-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .nav-link-admin {
+            border-color: rgba(239, 68, 68, 0.45);
+            color: #dc2626;
+        }
+
+        body.dark-mode .nav-link-admin {
+            color: #f87171;
+        }
+
+        .user-pill {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            background: var(--accent-light);
+            padding: 0.42rem 0.78rem;
+            border-radius: 9999px;
+        }
+
+        .session-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            padding: 0.25rem 0.4rem 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .session-timer {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-primary);
+        }
+
+        .btn-extend {
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--accent-primary);
+            border-radius: 9999px;
+            padding: 0.22rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-extend:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .btn-session-logout {
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            border-radius: 9999px;
+            padding: 0.22rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-session-logout:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .user-pill-link {
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .user-pill-link:hover {
+            opacity: 0.85;
+        }
+
+        /* Sliding Emoji Theme Toggle */
+        .theme-switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 62px;
+            height: 32px;
+            padding: 3px;
+            border-radius: 9999px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+
+        .theme-switch:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .theme-switch-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-mode .theme-switch-thumb {
+            transform: translateX(30px);
+        }
+
+        .theme-switch-icon {
+            position: relative;
+            z-index: 1;
+            width: 24px;
+            text-align: center;
+            font-size: 0.85rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Top Hero Grid: Left Market Indices & FX (1fr) + Right Credit-Card Profile (420px) */
+        .top-hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 420px;
+            gap: 1.5rem;
+            align-items: stretch;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Main Content Grid: Left Stock List (1fr) + Right Search & Tools Sidebar (420px) */
+        .main-content-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 420px;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .sidebar-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .market-overview-card,
+        .tools-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem 1.35rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .section-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .section-card-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .section-card-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            padding: 0.2rem 0.6rem;
+        }
+
+        .market-index-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .market-index-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .market-index-name {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .market-index-val {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .market-index-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .tools-placeholder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .tools-placeholder-item {
+            background: var(--bg-elevated);
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 0.8rem 0.95rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        @media (max-width: 1024px) {
+            .top-hero-grid,
+            .main-content-grid {
+                grid-template-columns: 1fr;
+            }
+            .market-index-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        /* Profile Card (Credit-card proportions ~ 420 x 250) */
+        .profile-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem 1.35rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 245px;
+        }
+
+        .profile-guest-bar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            gap: 1.15rem;
+        }
+
+        .profile-user-wrap {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            gap: 1rem;
+        }
+
+        .profile-top-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            min-width: 0;
+        }
+
+        .profile-avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-avatar.guest {
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            box-shadow: none;
+            border: 1px solid var(--border-color);
+        }
+
+        .profile-name-row {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-name {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .profile-meta {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+            line-height: 1.4;
+        }
+
+        .profile-cash-row {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.72rem 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .profile-cash-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }
+
+        .profile-cash-amount {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-currency-select {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            flex-shrink: 0;
+        }
+
+        .profile-currency-select:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .profile-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+        }
+
+        .profile-metric-box {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.65rem 0.7rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-width: 0;
+        }
+
+        .profile-metric-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-metric-value {
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-metric-sub {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .btn-card-action {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 7px;
+            padding: 0.35rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-card-action:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .btn-primary-link {
+            background: var(--accent-primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 9px;
+            padding: 0.65rem 1rem;
+            font-size: 0.86rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn-primary-link:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Table Pagination Bar */
+        .table-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            padding: 0.9rem 1rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-elevated);
+            flex-wrap: wrap;
+        }
+
+        .page-nav-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 7px;
+            padding: 0.4rem 0.72rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .page-nav-btn:hover:not(:disabled) {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .page-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-jump-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 0 0.35rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .page-input {
+            width: 48px;
+            padding: 0.35rem 0.4rem;
+            border-radius: 7px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            font-size: 0.84rem;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            font-variant-numeric: tabular-nums;
+            -moz-appearance: textfield;
+        }
+
+        .page-input::-webkit-outer-spin-button,
+        .page-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .page-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .page-size-select {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 7px;
+            padding: 0.36rem 0.55rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            margin-left: 0.4rem;
+        }
+
         /* Main Container */
         main {
             max-width: 1280px;
@@ -806,15 +1380,23 @@
     <!-- Top Header -->
     <header>
         <div class="nav-container">
-            <div class="logo-area">
+            <a href="/Dashboard/index.html" class="logo-area" style="text-decoration: none; color: inherit;">
                 <div class="logo-icon">S</div>
                 <div class="logo-title">StockLab</div>
                 <span class="logo-badge">v1.0 Live</span>
-            </div>
+            </a>
             <div class="nav-actions">
-                <button class="btn-theme" id="themeToggleBtn">
-                    <span id="themeIcon">🌙</span>
-                    <span id="themeLabel">다크 모드</span>
+                <a href="/Admin/index.html" id="adminPageLink" class="nav-link-btn nav-link-admin hidden">관리자</a>
+                <div class="session-pill hidden" id="navSessionBox">
+                    <a href="/User/index.html" class="user-pill user-pill-link" id="navUserNickname" title="마이페이지로 이동" style="padding: 0.2rem 0.6rem;">-</a>
+                    <span>세션 <span class="session-timer" id="navSessionTimer">30:00</span></span>
+                    <button type="button" class="btn-extend" id="extendSessionBtn">연장</button>
+                    <button type="button" class="btn-session-logout" id="navLogoutBtn">로그아웃</button>
+                </div>
+                <button type="button" class="theme-switch" id="themeToggleBtn" aria-label="테마 전환" title="라이트 / 다크 모드 전환">
+                    <span class="theme-switch-thumb"></span>
+                    <span class="theme-switch-icon">☀️</span>
+                    <span class="theme-switch-icon">🌙</span>
                 </button>
             </div>
         </div>
@@ -822,98 +1404,249 @@
 
     <!-- Main Content -->
     <main>
-        <!-- Stat Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-label">인메모리 상주 종목</span>
-                <span class="stat-value" id="totalCountText">17,220개</span>
-                <span class="stat-subtext">국내(코스피·코스닥·코넥스) + 해외(나스닥·NYSE·아멕스)</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">선제적 캐싱(Warm Cache)</span>
-                <span class="stat-value" style="color: #10b981;">거래량 Top20 연동</span>
-                <span class="stat-subtext">검색 트래픽 80% 사전 흡수 (외부 KIS 쿼터 방어)</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">KIS 자동 동기화</span>
-                <span class="stat-value" style="color: #2563eb;">일중 13회 대기 중</span>
-                <span class="stat-subtext">304 Not Modified 기반 무중단 원자적 스왑</span>
-            </div>
+        <!-- Top Hero Row: Left Market Composite Indices & FX + Right Credit-Card Profile -->
+        <div class="top-hero-grid">
+            <!-- 시장 종합 지수 & 환율 컨테이너 (공공데이터 API 연동 예정 영역) -->
+            <section class="market-overview-card" id="marketOverviewSection">
+                <div class="section-card-header">
+                    <span class="section-card-title">시장 종합 지수 · 환율</span>
+                    <span class="section-card-badge">공공데이터 API 연동 예정</span>
+                </div>
+                <div class="market-index-grid">
+                    <div class="market-index-item">
+                        <span class="market-index-name">KOSPI</span>
+                        <span class="market-index-val">-</span>
+                        <span class="market-index-sub">준비 중</span>
+                    </div>
+                    <div class="market-index-item">
+                        <span class="market-index-name">KOSDAQ</span>
+                        <span class="market-index-val">-</span>
+                        <span class="market-index-sub">준비 중</span>
+                    </div>
+                    <div class="market-index-item">
+                        <span class="market-index-name">USD / KRW</span>
+                        <span class="market-index-val">-</span>
+                        <span class="market-index-sub">환율 준비 중</span>
+                    </div>
+                    <div class="market-index-item">
+                        <span class="market-index-name">NASDAQ</span>
+                        <span class="market-index-val">-</span>
+                        <span class="market-index-sub">준비 중</span>
+                    </div>
+                    <div class="market-index-item">
+                        <span class="market-index-name">S&amp;P 500</span>
+                        <span class="market-index-val">-</span>
+                        <span class="market-index-sub">준비 중</span>
+                    </div>
+                    <div class="market-index-item">
+                        <span class="market-index-name">DOW / 환율 요약</span>
+                        <span class="market-index-val">-</span>
+                        <span class="market-index-sub">준비 중</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Card Section (Credit Card 비율, 우측 배치) -->
+            <section class="profile-card" id="dashboardProfileCard">
+                <!-- 비로그인 상태 -->
+                <div id="profileGuestView" class="profile-guest-bar">
+                    <div class="profile-info">
+                        <div class="profile-avatar guest">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div>
+                            <div class="profile-name">둘러보기 모드</div>
+                            <div class="profile-meta">로그인 후 모의투자 주문과 자산·관심종목을 이용할 수 있습니다.</div>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="/Auth/index.html" class="btn-primary-link">로그인 / 회원가입</a>
+                    </div>
+                </div>
+
+                <!-- 로그인 상태 -->
+                <div id="profileUserView" class="profile-user-wrap hidden">
+                    <div class="profile-top-row">
+                        <div class="profile-info">
+                            <div class="profile-avatar" id="profileAvatarBox">
+                                <span id="profileAvatarText">U</span>
+                            </div>
+                            <div>
+                                <div class="profile-name-row">
+                                    <span class="profile-name" id="profileNicknameText">-</span>
+                                    <span class="logo-badge" id="profileTypeBadge">Local</span>
+                                </div>
+                                <div class="profile-meta" id="profileScenarioText">대표 계좌 요약</div>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <a href="/User/index.html" id="myPageLink" class="btn-card-action">마이페이지</a>
+                            <button type="button" id="cardLogoutBtn" class="btn-card-action">로그아웃</button>
+                        </div>
+                    </div>
+
+                    <!-- 윗줄: 예수금 (금액칸 + 통화단위 드롭다운 분리) -->
+                    <div class="profile-cash-row">
+                        <div class="profile-cash-left">
+                            <span class="profile-metric-label">예수금</span>
+                            <span class="profile-cash-amount" id="profileCashAmount">-</span>
+                        </div>
+                        <select id="profileCurrencySelect" class="profile-currency-select" aria-label="통화 단위 선택">
+                            <option value="KRW">KRW (원)</option>
+                            <option value="USD">USD ($)</option>
+                        </select>
+                    </div>
+
+                    <!-- 아랫줄: 왼쪽 평가자산 + 오른쪽 실현손익 -->
+                    <div class="profile-metrics">
+                        <div class="profile-metric-box">
+                            <span class="profile-metric-label">평가자산</span>
+                            <span class="profile-metric-value" id="profileAssetValue">-</span>
+                            <span class="profile-metric-sub" id="profileAssetSub">예수금 + 보유 평가금</span>
+                        </div>
+                        <div class="profile-metric-box">
+                            <span class="profile-metric-label">실현손익</span>
+                            <span class="profile-metric-value" id="profilePnlValue">-</span>
+                            <span class="profile-metric-sub" id="profilePnlSub">누적 매도 손익</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <!-- Search Bar Section -->
-        <section class="search-section">
-            <div class="search-header">
-                <h2 class="search-title">글로벌 종목 실시간 탐색</h2>
-                <p class="search-desc">단축코드(티커) 또는 한글/영문 종목명을 입력하여 17,000여 개 글로벌 주식을 실시간으로 검색하세요.</p>
-            </div>
-
-            <div class="search-box-wrapper">
-                <div class="search-input-inner">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" class="search-input" id="searchInput" placeholder="종목명 또는 심볼을 입력하세요 (예: 삼성전자, 테슬라, 애플, AAPL)..." autocomplete="off">
-                </div>
-                <button type="button" class="btn-search" id="searchBtn">
-                    <span>검색</span>
-                </button>
-            </div>
-
-            <!-- Real-Time Top Ranking Chips -->
-            <div class="popular-section" id="popularChipsContainer">
-                <div class="popular-header-row">
-                    <span class="popular-label" id="popularRankingLabel">🔥 실시간 거래대금 순위</span>
-                </div>
-                <div id="popularChipsList" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <!-- Dynamically rendered -->
-                </div>
-            </div>
-
-            <div class="filter-group">
-                <span class="filter-chip scope-chip active" data-scope="ALL">전체 시장</span>
-                <div class="scope-segmented" role="group" aria-label="국내/해외 선택">
-                    <button type="button" class="scope-seg-btn scope-chip" data-scope="KR">국내</button>
-                    <button type="button" class="scope-seg-btn scope-chip" data-scope="US">해외</button>
-                </div>
-                <span class="filter-divider" aria-hidden="true"></span>
-                <span class="filter-chip market-chip" data-market="KOSPI">코스피 (KOSPI)</span>
-                <span class="filter-chip market-chip" data-market="KOSDAQ">코스닥 (KOSDAQ)</span>
-                <span class="filter-chip market-chip" data-market="KONEX">코넥스 (KONEX)</span>
-                <span class="filter-chip market-chip" data-market="USA">미국주식 (USA)</span>
-            </div>
-        </section>
-
-        <!-- Search Results Table -->
-        <div class="table-container">
-            <div class="table-header-title">
-                <span id="tableTitle">실시간 인기 및 탐색 종목</span>
-                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                    <div class="scope-segmented" role="group" aria-label="정렬 기준 선택">
-                        <button type="button" class="scope-seg-btn sort-chip active" data-sort="value">거래대금 상위</button>
-                        <button type="button" class="scope-seg-btn sort-chip" data-sort="volume">거래량 상위</button>
+        <!-- Main Body Row: Left Filtered Stock List + Right Search & Tools Sidebar -->
+        <div class="main-content-grid">
+            <!-- Left: Top 10 즉시 이동 + 조건에 해당하는 종목 리스트 컨테이너 -->
+            <div style="display: flex; flex-direction: column; gap: 1rem; min-width: 0;">
+                <!-- Real-Time Top Ranking Chips (리스트 상단 배치) -->
+                <section class="popular-section" id="popularChipsContainer" style="margin-bottom: 0; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 14px; padding: 0.95rem 1.25rem; box-shadow: var(--shadow-sm);">
+                    <div class="popular-header-row" style="margin-bottom: 0.55rem;">
+                        <span class="popular-label" id="popularRankingLabel">🔥 실시간 거래대금 Top 10</span>
                     </div>
-                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;" id="resultCountText"></span>
+                    <div id="popularChipsList" style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+                        <!-- Dynamically rendered -->
+                    </div>
+                </section>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <div class="table-header-title" style="gap: 0.65rem; flex-wrap: nowrap;">
+                        <span id="tableTitle" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">글로벌 통합 실시간 거래대금 순위 Top 10</span>
+                        <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0; white-space: nowrap;">
+                            <div class="scope-segmented" id="sortToggleGroup" role="group" aria-label="정렬 및 보기 모드">
+                                <button type="button" class="scope-seg-btn sort-chip active" data-sort="value" style="padding: 0.28rem 0.62rem; font-size: 0.78rem;">거래대금순</button>
+                                <button type="button" class="scope-seg-btn sort-chip" data-sort="volume" style="padding: 0.28rem 0.62rem; font-size: 0.78rem;">거래량순</button>
+                            </div>
+                            <button type="button" class="scope-seg-btn" id="allSnapshotBtn" style="padding: 0.28rem 0.68rem; font-size: 0.78rem; border: 1px solid var(--border-color); border-radius: 8px;">전체 종목</button>
+                            <select id="pageSizeSelect" class="page-size-select" style="margin-left: 0; padding: 0.28rem 0.45rem; font-size: 0.78rem;" aria-label="페이지당 표시 개수">
+                                <option value="10" selected>10개씩</option>
+                                <option value="20">20개씩</option>
+                                <option value="30">30개씩</option>
+                                <option value="40">40개씩</option>
+                                <option value="50">50개씩</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 90px; text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">심볼 / 코드</th>
+                                <th style="text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">종목명 (한글/영문)</th>
+                                <th style="width: 120px; text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">현재가 / 기준가</th>
+                                <th style="width: 125px; text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">전일대비</th>
+                                <th style="width: 120px; text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">거래대금 / 거래량</th>
+                                <th style="width: 78px; text-align: center; white-space: nowrap; padding: 0.85rem 0.65rem;">증권 구분</th>
+                                <th style="width: 100px; text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">시장 / 거래소</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody">
+                            <!-- Dynamic rendering -->
+                        </tbody>
+                    </table>
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        일치하는 검색 결과가 존재하지 않습니다.
+                    </div>
+                    <div class="table-pagination hidden" id="tablePagination" style="justify-content: space-between;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;" id="resultCountText">총 0건</span>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <button type="button" class="page-nav-btn" id="pageFirstBtn">맨앞</button>
+                            <button type="button" class="page-nav-btn" id="pagePrevBtn">앞</button>
+                            <div class="page-jump-wrap">
+                                <input type="number" inputmode="numeric" class="page-input" id="pageInput" min="1" value="1" aria-label="현재 페이지">
+                                <span id="pageTotalLabel">/ 1 페이지</span>
+                            </div>
+                            <button type="button" class="page-nav-btn" id="pageNextBtn">뒤</button>
+                            <button type="button" class="page-nav-btn" id="pageLastBtn">맨뒤</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 100px; text-align: center; white-space: nowrap;">심볼 / 코드</th>
-                        <th style="width: 22%; text-align: center; white-space: nowrap;">종목명 (한글/영문)</th>
-                        <th style="width: 135px; text-align: center; white-space: nowrap;">현재가 / 기준가</th>
-                        <th style="width: 155px; text-align: center; white-space: nowrap;">전일대비</th>
-                        <th style="width: 120px; text-align: center; white-space: nowrap;">거래대금</th>
-                        <th style="width: 120px; text-align: center; white-space: nowrap;">누적 거래량</th>
-                        <th style="width: 105px; text-align: center; white-space: nowrap;">증권 구분</th>
-                        <th style="width: 115px; text-align: center; white-space: nowrap;">시장 / 거래소</th>
-                    </tr>
-                </thead>
-                <tbody id="resultTableBody">
-                    <!-- Dynamic rendering -->
-                </tbody>
-            </table>
-            <div class="empty-state" id="emptyState" style="display: none;">
-                일치하는 검색 결과가 존재하지 않습니다.
-            </div>
+
+            <!-- Right: 검색 및 기타 도구 모음 컨테이너 -->
+            <aside class="sidebar-tools">
+                <section class="search-section" style="margin-bottom: 0; padding: 1.25rem;">
+                    <div class="search-header" style="margin-bottom: 1rem;">
+                        <h2 class="search-title" style="font-size: 1rem;">글로벌 종목 실시간 탐색</h2>
+                        <p class="search-desc" style="font-size: 0.8rem;">단축코드(티커) 또는 종목명으로 검색하거나 시장 조건을 선택하세요.</p>
+                    </div>
+
+                    <div class="search-box-wrapper" style="margin-bottom: 1rem;">
+                        <div class="search-input-inner">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="searchInput" placeholder="종목명 또는 심볼 (예: 삼성전자, AAPL)" autocomplete="off" style="padding: 0.65rem 0.85rem 0.65rem 2.3rem; font-size: 0.88rem;">
+                        </div>
+                        <button type="button" class="btn-search" id="searchBtn" style="padding: 0 1rem; font-size: 0.88rem;">
+                            <span>검색</span>
+                        </button>
+                    </div>
+
+                    <div class="filter-group" style="flex-direction: column; align-items: stretch; gap: 0.6rem;">
+                        <!-- 1행: 시장 구분 (전체 / 국내 / 해외) -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); min-width: 38px;">시장</span>
+                            <div class="scope-segmented" role="group" aria-label="시장 구분 선택">
+                                <button type="button" class="scope-seg-btn scope-chip active" data-scope="ALL">전체</button>
+                                <button type="button" class="scope-seg-btn scope-chip" data-scope="KR">국내</button>
+                                <button type="button" class="scope-seg-btn scope-chip" data-scope="US">해외</button>
+                            </div>
+                        </div>
+
+                        <!-- 2행: 거래소 구분 (화폐 단위별 줄바꿈: KRW / USD) -->
+                        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); min-width: 38px; padding-top: 0.35rem;">거래소</span>
+                            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                    <span class="filter-chip market-chip" data-market="KOSPI">코스피</span>
+                                    <span class="filter-chip market-chip" data-market="KOSDAQ">코스닥</span>
+                                    <span class="filter-chip market-chip" data-market="KONEX">코넥스</span>
+                                </div>
+                                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                    <span class="filter-chip market-chip" data-market="NAS">나스닥 (NAS)</span>
+                                    <span class="filter-chip market-chip" data-market="NYS">뉴욕 (NYS)</span>
+                                    <span class="filter-chip market-chip" data-market="AMS">아멕스 (AMS)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 경제 뉴스 & 스크랩 등 확장 도구 영역 (추후 구현 예정) -->
+                <section class="tools-card" id="newsToolsSection">
+                    <div class="section-card-header">
+                        <span class="section-card-title">경제 뉴스 · 스크랩 도구</span>
+                        <span class="section-card-badge">확장 예정</span>
+                    </div>
+                    <div class="tools-placeholder-list">
+                        <div class="tools-placeholder-item">
+                            <strong>📰 주요 경제 뉴스 피드</strong><br>
+                            국내·해외 증시 속보 및 시황 뉴스 요약 영역
+                        </div>
+                        <div class="tools-placeholder-item">
+                            <strong>📌 관심 스크랩 · 메모</strong><br>
+                            관심 종목 뉴스 스크랩 및 투자 메모 도구 영역
+                        </div>
+                    </div>
+                </section>
+            </aside>
         </div>
     </main>
 
@@ -1006,29 +1739,193 @@
     <script>
         // @ts-nocheck
         const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
+        const ADMIN_USER_TYPE = 99;
+
+        // 로그인 세션 확인 (상단 닉네임 + 30분 세션 타이머 + 선택적 연장, 프로필 카드에 자산/마이페이지/로그아웃 배치)
+        (async function verifyDashboardSession() {
+            const USER_TYPE_LABELS = { 1: 'Local', 2: 'Discord', 99: 'Admin' };
+            const adminPageLink = document.getElementById('adminPageLink');
+            const navSessionBox = document.getElementById('navSessionBox');
+            const navUserNickname = document.getElementById('navUserNickname');
+            const navSessionTimer = document.getElementById('navSessionTimer');
+            const extendSessionBtn = document.getElementById('extendSessionBtn');
+            const navLogoutBtn = document.getElementById('navLogoutBtn');
+            const cardLogoutBtn = document.getElementById('cardLogoutBtn');
+            const profileGuestView = document.getElementById('profileGuestView');
+            const profileUserView = document.getElementById('profileUserView');
+            const profileAvatarBox = document.getElementById('profileAvatarBox');
+            const profileAvatarText = document.getElementById('profileAvatarText');
+            const profileNicknameText = document.getElementById('profileNicknameText');
+            const profileTypeBadge = document.getElementById('profileTypeBadge');
+            const profileScenarioText = document.getElementById('profileScenarioText');
+            const profileCashAmount = document.getElementById('profileCashAmount');
+            const profileCurrencySelect = document.getElementById('profileCurrencySelect');
+            const profileAssetValue = document.getElementById('profileAssetValue');
+            const profileAssetSub = document.getElementById('profileAssetSub');
+            const profilePnlValue = document.getElementById('profilePnlValue');
+            const profilePnlSub = document.getElementById('profilePnlSub');
+
+            let loadedMainScenario = null;
+
+            let sessionExpiresAtMs = null;
+            let sessionTimerId = null;
+
+            function startSessionCountdown(expiresIso) {
+                sessionExpiresAtMs = expiresIso ? new Date(expiresIso).getTime() : (Date.now() + 30 * 60 * 1000);
+                if (sessionTimerId) clearInterval(sessionTimerId);
+
+                const renderTick = () => {
+                    const remainingSec = Math.max(0, Math.floor((sessionExpiresAtMs - Date.now()) / 1000));
+                    const mm = String(Math.floor(remainingSec / 60)).padStart(2, '0');
+                    const ss = String(remainingSec % 60).padStart(2, '0');
+                    navSessionTimer.textContent = `${mm}:${ss}`;
+                    if (remainingSec <= 0) {
+                        clearInterval(sessionTimerId);
+                        alert('유효 세션 시간이 만료되어 다시 로그인이 필요합니다.');
+                        window.location.replace('/Auth/index.html');
+                    }
+                };
+
+                renderTick();
+                sessionTimerId = setInterval(renderTick, 1000);
+            }
+
+            extendSessionBtn.addEventListener('click', async () => {
+                extendSessionBtn.disabled = true;
+                try {
+                    const res = await fetch(buildServerUrl('/api/auth/extend'), {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json?.success && json.data?.sessionExpiresAtUtc) {
+                            startSessionCountdown(json.data.sessionExpiresAtUtc);
+                        }
+                    } else {
+                        alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
+                        window.location.replace('/Auth/index.html');
+                    }
+                } finally {
+                    extendSessionBtn.disabled = false;
+                }
+            });
+
+            function formatSignedKrw(val) {
+                const n = Math.round(Number(val || 0));
+                if (n > 0) return `+${n.toLocaleString()}원`;
+                if (n < 0) return `${n.toLocaleString()}원`;
+                return '0원';
+            }
+
+            function formatSignedUsd(val) {
+                const n = Number(val || 0);
+                const formatted = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (n > 0) return `+$${formatted}`;
+                if (n < 0) return `-$${formatted}`;
+                return '$0.00';
+            }
+
+            try {
+                const res = await fetch(buildServerUrl('/api/auth/me'), { credentials: 'include' });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.success && json.data) {
+                        const profile = json.data;
+                        navUserNickname.textContent = profile.nickname || '사용자';
+                        navSessionBox.classList.remove('hidden');
+                        startSessionCountdown(profile.sessionExpiresAtUtc);
+
+                        profileGuestView.classList.add('hidden');
+                        profileUserView.classList.remove('hidden');
+                        profileNicknameText.textContent = profile.nickname || '사용자';
+                        if (profile.avatarUrl) {
+                            profileAvatarBox.innerHTML = `<img src="${profile.avatarUrl}" alt="프로필 사진">`;
+                        } else {
+                            profileAvatarText.textContent = (profile.nickname || 'U').charAt(0).toUpperCase();
+                        }
+                        profileTypeBadge.textContent = USER_TYPE_LABELS[Number(profile.type)] || 'User';
+
+                        const mainScenario = profile.scenarios?.[0];
+                        loadedMainScenario = mainScenario || null;
+                        profileScenarioText.textContent = mainScenario ? `${mainScenario.name} 기준 요약` : '대표 계좌 요약';
+
+                        renderProfileAssets();
+
+                        if (Number(profile.type) === ADMIN_USER_TYPE) {
+                            adminPageLink.classList.remove('hidden');
+                        }
+                    }
+                }
+            } catch {
+                // 비로그인 둘러보기 상태 유지
+            }
+
+            function renderProfileAssets() {
+                if (!loadedMainScenario) return;
+                const currency = profileCurrencySelect.value || 'KRW';
+                const wallets = loadedMainScenario.wallets || [];
+                const holdings = loadedMainScenario.holdings || [];
+
+                const wallet = wallets.find(w => w.currency === currency);
+                const cash = Number(wallet?.availableCash ?? 0) + Number(wallet?.pendingCash ?? 0);
+
+                // 평가자산: 선택 통화 예수금 + 해당 통화 보유종목 실시간 가격(currentPrice ?? averageBuyPrice) 직접 합산
+                let holdingValuation = 0;
+                holdings.forEach(h => {
+                    const hCurrency = h.currency || (/^\d+$/.test(String(h.stockCode || '')) ? 'KRW' : 'USD');
+                    if (hCurrency === currency) {
+                        const unitPrice = Number(h.currentPrice > 0 ? h.currentPrice : (h.averageBuyPrice || 0));
+                        holdingValuation += Number(h.quantity || 0) * unitPrice;
+                    }
+                });
+
+                const pnl = Number(wallet?.realizedPnl ?? 0);
+
+                if (currency === 'USD') {
+                    profileCashAmount.textContent = `$${cash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    profileAssetValue.textContent = `$${(cash + holdingValuation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    profileAssetSub.textContent = holdingValuation > 0
+                        ? `보유평가 $${holdingValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : '보유종목 없음';
+                    profilePnlValue.textContent = formatSignedUsd(pnl);
+                } else {
+                    profileCashAmount.textContent = `${Math.round(cash).toLocaleString()}원`;
+                    profileAssetValue.textContent = `${Math.round(cash + holdingValuation).toLocaleString()}원`;
+                    profileAssetSub.textContent = holdingValuation > 0
+                        ? `보유평가 ${Math.round(holdingValuation).toLocaleString()}원`
+                        : '보유종목 없음';
+                    profilePnlValue.textContent = formatSignedKrw(pnl);
+                }
+
+                profilePnlValue.className = `profile-metric-value ${pnl > 0 ? 'price-up' : (pnl < 0 ? 'price-down' : 'price-flat')}`;
+                profilePnlSub.textContent = `${currency} 기준 누적 손익`;
+            }
+
+            profileCurrencySelect.addEventListener('change', renderProfileAssets);
+
+            async function performLogout() {
+                try {
+                    await fetch(buildServerUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
+                } finally {
+                    window.location.replace('/Auth/index.html');
+                }
+            }
+
+            navLogoutBtn.addEventListener('click', performLogout);
+            cardLogoutBtn.addEventListener('click', performLogout);
+        })();
         // Theme Management
         const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const themeIcon = document.getElementById('themeIcon');
-        const themeLabel = document.getElementById('themeLabel');
 
         const savedTheme = localStorage.getItem('stocklab-theme') || 'light';
         if (savedTheme === 'dark') {
             document.body.classList.add('dark-mode');
-            themeIcon.textContent = '☀️';
-            themeLabel.textContent = '라이트 모드';
         }
 
         themeToggleBtn.addEventListener('click', () => {
             const isDark = document.body.classList.toggle('dark-mode');
-            if (isDark) {
-                themeIcon.textContent = '☀️';
-                themeLabel.textContent = '라이트 모드';
-                localStorage.setItem('stocklab-theme', 'dark');
-            } else {
-                themeIcon.textContent = '🌙';
-                themeLabel.textContent = '다크 모드';
-                localStorage.setItem('stocklab-theme', 'light');
-            }
+            localStorage.setItem('stocklab-theme', isDark ? 'dark' : 'light');
         });
 
         // Search & Filter
@@ -1039,19 +1936,38 @@
         const scopeChips = document.querySelectorAll('.scope-chip');
         const marketChips = document.querySelectorAll('.market-chip');
         const sortChips = document.querySelectorAll('.sort-chip');
+        const allSnapshotBtn = document.getElementById('allSnapshotBtn');
         const popularRankingLabel = document.getElementById('popularRankingLabel');
         const tableTitle = document.getElementById('tableTitle');
         const resultCountText = document.getElementById('resultCountText');
         const popularChipsList = document.getElementById('popularChipsList');
 
         let activeScope = 'ALL'; // Group 1: 'ALL' | 'KR' | 'US' | null
-        let selectedIndividualMarkets = new Set(); // Group 2: 'KOSPI', 'KOSDAQ', 'KONEX', 'USA'
-        let activeSort = 'value'; // 'value' (거래대금 상위) | 'volume' (거래량 상위)
+        let selectedIndividualMarkets = new Set(); // Group 2: 'KOSPI', 'KOSDAQ', 'KONEX', 'NAS', 'NYS', 'AMS'
+        let activeMode = 'popular'; // 'popular' (실시간 거래대금/거래량순) | 'snapshot' (전체 종목 스냅샷)
+        let activeSort = 'value'; // 'value' (거래대금순) | 'volume' (거래량순)
+        let masterSnapshot = null; // 전체 종목 클릭 시 서버에서 받아온 마스터 캐시 스냅샷
         let cachedResults = [];
         let currentAbortController = null;
         const clientSearchCache = new Map(); // 클라이언트 로컬 캐시 (동일 단어 재검색 시 네트워크 0회)
         const POPULAR_CACHE_TTL_MS = 60000;
         const clientPopularCache = new Map(); // 인기 순위 로컬 캐시 (60초 TTL)
+
+        function updateViewModeButtonsUI() {
+            sortChips.forEach(c => {
+                c.classList.toggle('active', activeMode === 'popular' && c.dataset.sort === activeSort);
+            });
+            allSnapshotBtn.classList.toggle('active', activeMode === 'snapshot');
+            if (activeMode === 'snapshot') {
+                allSnapshotBtn.style.background = 'var(--accent-primary)';
+                allSnapshotBtn.style.color = '#ffffff';
+                allSnapshotBtn.style.borderColor = 'var(--accent-primary)';
+            } else {
+                allSnapshotBtn.style.background = '';
+                allSnapshotBtn.style.color = '';
+                allSnapshotBtn.style.borderColor = 'var(--border-color)';
+            }
+        }
 
         function getMarketQueryParam() {
             if (activeScope) return activeScope;
@@ -1080,11 +1996,11 @@
 
         function onMarketFilterChanged() {
             updateFilterChipsUI();
-            const query = searchInput.value.trim();
-            if (!query) {
+            if (activeMode === 'snapshot' || searchInput.value.trim()) {
                 loadPopularPreview();
-            } else if (query.length >= 2) {
-                fetchStocks(query);
+                applySnapshotFilterAndRender(1);
+            } else {
+                loadPopularView();
             }
         }
 
@@ -1114,20 +2030,26 @@
             });
         });
 
-        // Sort Click (거래대금 상위 vs 거래량 상위)
+        // Sort Click (거래대금순 vs 거래량순 - 누르는 즉시 서버에서 요청 개수만큼 정렬 후 반환)
         sortChips.forEach(chip => {
             chip.addEventListener('click', () => {
                 const sort = chip.dataset.sort;
-                if (activeSort === sort) return;
                 activeSort = sort;
-                sortChips.forEach(c => c.classList.toggle('active', c.dataset.sort === activeSort));
+                activeMode = 'popular';
+                updateViewModeButtonsUI();
                 popularRankingLabel.textContent = activeSort === 'value'
-                    ? '🔥 실시간 거래대금 순위'
-                    : '🔥 실시간 거래량 순위';
-                if (!searchInput.value.trim()) {
-                    loadPopularPreview();
-                }
+                    ? '🔥 실시간 거래대금 Top 10'
+                    : '🔥 실시간 거래량 Top 10';
+                searchInput.value = '';
+                loadPopularView();
             });
+        });
+
+        // 전체 종목 버튼 클릭: 클릭한 시점에 서버의 전체 마스터 캐시 스냅샷을 받아 클라이언트에서 정렬/필터/페이징
+        allSnapshotBtn.addEventListener('click', () => {
+            activeMode = 'snapshot';
+            updateViewModeButtonsUI();
+            loadMasterSnapshot(true);
         });
 
         // 키워드 완성 시에만 검색 패킷 발송 (검색 버튼 클릭 or Enter 키 입력)
@@ -1136,18 +2058,23 @@
 
             if (!query) {
                 if (currentAbortController) currentAbortController.abort();
-                tableTitle.textContent = "실시간 인기 및 탐색 종목";
-                loadPopularPreview();
+                if (activeMode === 'snapshot') {
+                    applySnapshotFilterAndRender(1);
+                } else {
+                    loadPopularView();
+                }
                 return;
             }
 
-            // 최소 2글자 이상 키워드가 완성되었을 때만 패킷 전송
+            // 최소 2글자 이상 키워드가 완성되었을 때만 검색 실행
             if (query.length < 2) {
                 alert("검색어는 최소 2글자 이상 입력해주세요 (예: 삼성, 테슬라, AAPL).");
                 return;
             }
 
-            fetchStocks(query);
+            activeMode = 'snapshot';
+            updateViewModeButtonsUI();
+            applySnapshotFilterAndRender(1, query);
         }
 
         // 검색 버튼 클릭 이벤트
@@ -1162,73 +2089,259 @@
         });
 
         async function fetchStocks(query) {
-            const marketParam = getMarketQueryParam();
-            const cacheKey = `${query}::${marketParam}`;
-            tableTitle.textContent = `'${query}' 검색 결과 (${marketParam === 'ALL' ? '전체 시장' : marketParam})`;
+            await loadBrowsePage(1, query);
+        }
 
-            // [병목 방어선 2] 클라이언트 단기 캐시 확인 (서버 통신 0회)
-            if (clientSearchCache.has(cacheKey)) {
-                cachedResults = clientSearchCache.get(cacheKey);
-                renderResults(cachedResults);
+        let pageSize = 10;
+        let allRenderedStocks = [];
+        let currentPage = 1;
+        let totalPages = 1;
+
+        const tablePagination = document.getElementById('tablePagination');
+        const pageFirstBtn = document.getElementById('pageFirstBtn');
+        const pagePrevBtn = document.getElementById('pagePrevBtn');
+        const pageNextBtn = document.getElementById('pageNextBtn');
+        const pageLastBtn = document.getElementById('pageLastBtn');
+        const pageInput = document.getElementById('pageInput');
+        const pageTotalLabel = document.getElementById('pageTotalLabel');
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+
+        function goToPage(page) {
+            const clamped = Math.max(1, Math.min(totalPages, Math.floor(Number(page) || 1)));
+            currentPage = clamped;
+            renderCurrentPage();
+        }
+
+        pageFirstBtn.addEventListener('click', () => goToPage(1));
+        pagePrevBtn.addEventListener('click', () => goToPage(currentPage - 1));
+        pageNextBtn.addEventListener('click', () => goToPage(currentPage + 1));
+        pageLastBtn.addEventListener('click', () => goToPage(totalPages));
+
+        pageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                goToPage(pageInput.value);
+            }
+        });
+        pageInput.addEventListener('change', () => goToPage(pageInput.value));
+
+        pageSizeSelect.addEventListener('change', () => {
+            pageSize = Math.max(1, Number(pageSizeSelect.value) || 10);
+            if (activeMode === 'popular') {
+                loadPopularView();
                 return;
             }
+            currentPage = 1;
+            totalPages = Math.max(1, Math.ceil(allRenderedStocks.length / pageSize));
+            renderCurrentPage();
+        });
 
-            if (currentAbortController) {
-                currentAbortController.abort();
+        // 클라이언트 측 중복 제거 + 통화 환산 거래대금/거래량 정렬 + 개수 제한
+        function sortAndSlicePopularItems(items, sort, limitCount) {
+            const seen = new Set();
+            const deduped = [];
+            for (const item of (items || [])) {
+                const code = (item.stockCode || item.shortCode || '').toUpperCase();
+                if (!code || seen.has(code)) continue;
+                seen.add(code);
+                deduped.push(item);
             }
-            currentAbortController = new AbortController();
 
-            try {
-                const res = await fetch(`/api/stocks/search?name=${encodeURIComponent(query)}&market=${encodeURIComponent(marketParam)}`, {
-                    signal: currentAbortController.signal
-                });
-                const json = await res.json();
-
-                if (json.success && json.data && json.data.length > 0) {
-                    cachedResults = json.data;
-                    clientSearchCache.set(cacheKey, cachedResults);
-                    renderResults(cachedResults);
+            const isValue = sort !== 'volume';
+            deduped.sort((a, b) => {
+                if (isValue) {
+                    const aVal = Number(a.tradingValue || 0) * ((a.currency || '').toUpperCase() === 'USD' ? 1350 : 1);
+                    const bVal = Number(b.tradingValue || 0) * ((b.currency || '').toUpperCase() === 'USD' ? 1350 : 1);
+                    if (bVal !== aVal) return bVal - aVal;
                 } else {
-                    // 단축코드/티커 정확 일치 조회 시도
-                    try {
-                        const codeRes = await fetch(`/api/stocks/${encodeURIComponent(query)}`, {
-                            signal: currentAbortController.signal
-                        });
-                        const codeJson = await codeRes.json();
-                        if (codeJson.success && codeJson.data) {
-                            cachedResults = [codeJson.data];
-                            clientSearchCache.set(cacheKey, cachedResults);
-                            renderResults(cachedResults);
-                            return;
-                        }
-                    } catch (ignore) {
-                        // 조회 실패 시 빈 결과로 처리
-                    }
-
-                    cachedResults = [];
-                    renderResults([]);
+                    const aVol = Number(a.volume || 0);
+                    const bVol = Number(b.volume || 0);
+                    if (bVol !== aVol) return bVol - aVol;
                 }
-            } catch (err) {
-                if (err.name === 'AbortError') return;
-                console.error("검색 오류:", err);
-                renderResults([]);
+                return Number(a.rank || 9999) - Number(b.rank || 9999);
+            });
+
+            return deduped.slice(0, limitCount);
+        }
+
+        function applyPopularPoolToUI(pool, marketParam, sort, marketLabel, sortLabel) {
+            const topItems = sortAndSlicePopularItems(pool, sort, pageSize);
+            tableTitle.textContent = `${marketLabel} 실시간 ${sortLabel} 순위 Top ${topItems.length}`;
+            renderPopularChips(topItems.slice(0, 10));
+            if (activeMode === 'popular') {
+                renderResults(topItems);
             }
         }
 
-        function renderResults(stocks) {
-            resultTableBody.innerHTML = '';
+        async function loadPopularView() {
+            const marketParam = getMarketQueryParam();
+            const marketLabel = marketParam === 'ALL' ? '글로벌 통합'
+                : marketParam === 'KR' ? '국내(KR)'
+                : marketParam === 'US' ? '해외(US)'
+                : marketParam;
+            const sortLabel = activeSort === 'value' ? '거래대금' : '거래량';
+            const cacheKey = `${marketParam}|${activeSort}`;
+            const cached = clientPopularCache.get(cacheKey);
 
-            const filtered = stocks || [];
-            resultCountText.textContent = `(총 ${filtered.length}건)`;
+            // 클라이언트 캐시가 유효하면 서버 재요청 없이 즉시 클라이언트에서 정렬/슬라이싱
+            if (cached && cached.data && cached.data.length > 0) {
+                applyPopularPoolToUI(cached.data, marketParam, activeSort, marketLabel, sortLabel);
+                if ((Date.now() - cached.timestamp) < POPULAR_CACHE_TTL_MS) {
+                    return;
+                }
+            } else {
+                tableTitle.textContent = `${marketLabel} 실시간 ${sortLabel} 순위`;
+            }
 
-            if (filtered.length === 0) {
+            try {
+                const res = await fetch(`/api/stocks/popular?market=${encodeURIComponent(marketParam)}&sort=${encodeURIComponent(activeSort)}`);
+                const json = await res.json();
+                if (json?.success && Array.isArray(json.data)) {
+                    clientPopularCache.set(cacheKey, { data: json.data, timestamp: Date.now() });
+                    if (`${getMarketQueryParam()}|${activeSort}` === cacheKey) {
+                        applyPopularPoolToUI(json.data, marketParam, activeSort, marketLabel, sortLabel);
+                    }
+                } else if (!cached && activeMode === 'popular') {
+                    renderResults([]);
+                }
+            } catch (e) {
+                console.error('실시간 순위 로드 실패:', e);
+                if (!cached && activeMode === 'popular') {
+                    renderResults([]);
+                }
+            }
+        }
+
+        let snapshotFetchPromise = null;
+        async function loadMasterSnapshot(forceRefresh = false) {
+            if (!forceRefresh && Array.isArray(masterSnapshot)) {
+                applySnapshotFilterAndRender(1);
+                return;
+            }
+            if (snapshotFetchPromise) {
+                await snapshotFetchPromise;
+                applySnapshotFilterAndRender(1);
+                return;
+            }
+
+            tableTitle.textContent = '전체 종목 스냅샷 불러오는 중...';
+            allSnapshotBtn.disabled = true;
+            try {
+                snapshotFetchPromise = fetch('/api/stocks/snapshot')
+                    .then(r => r.json())
+                    .then(json => {
+                        if (json?.success && Array.isArray(json.data)) {
+                            masterSnapshot = json.data;
+                        } else {
+                            masterSnapshot = masterSnapshot || [];
+                        }
+                        return masterSnapshot;
+                    });
+                await snapshotFetchPromise;
+                applySnapshotFilterAndRender(1);
+            } catch (e) {
+                console.error('전체 마스터 스냅샷 로드 실패:', e);
+                renderResults([]);
+            } finally {
+                snapshotFetchPromise = null;
+                allSnapshotBtn.disabled = false;
+            }
+        }
+
+        function resolveSnapshotMarketSet(marketParam) {
+            const set = new Set();
+            (marketParam || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean).forEach(token => {
+                if (token === 'ALL') return;
+                if (token === 'KR') {
+                    ['KOSPI', 'KOSDAQ', 'KONEX', 'NXT_KOSPI', 'NXT_KOSDAQ'].forEach(m => set.add(m));
+                } else if (token === 'US' || token === 'USA') {
+                    ['USA', 'NAS', 'NYS', 'AMS'].forEach(m => set.add(m));
+                } else if (token === 'KOSPI') {
+                    set.add('KOSPI');
+                    set.add('NXT_KOSPI');
+                } else if (token === 'KOSDAQ') {
+                    set.add('KOSDAQ');
+                    set.add('NXT_KOSDAQ');
+                } else {
+                    set.add(token);
+                }
+            });
+            return set;
+        }
+
+        async function applySnapshotFilterAndRender(targetPage = 1, explicitQuery = null) {
+            if (!Array.isArray(masterSnapshot)) {
+                await loadMasterSnapshot(false);
+                if (!Array.isArray(masterSnapshot)) return;
+            }
+
+            const marketParam = getMarketQueryParam();
+            const query = (explicitQuery !== null ? explicitQuery : searchInput.value.trim()).toLowerCase();
+            const allowedMarkets = resolveSnapshotMarketSet(marketParam);
+            const scopeTitle = marketParam === 'ALL' ? '전체 시장' : marketParam;
+            tableTitle.textContent = query
+                ? `'${query}' 검색 결과 (${scopeTitle})`
+                : `${scopeTitle} 전체 종목`;
+
+            const filtered = masterSnapshot.filter(item => {
+                if (allowedMarkets.size > 0) {
+                    const mType = (item.marketType || '').toUpperCase();
+                    const eCode = (item.exchangeCode || '').toUpperCase();
+                    if (!allowedMarkets.has(mType) && !allowedMarkets.has(eCode)) {
+                        return false;
+                    }
+                }
+                if (query) {
+                    const nameMatch = (item.koreanName || '').toLowerCase().includes(query);
+                    const codeMatch = (item.shortCode || '').toLowerCase().includes(query);
+                    if (!nameMatch && !codeMatch) return false;
+                }
+                return true;
+            });
+
+            // 클라이언트 측 정렬: 기준가(> 0) 우선, 단축코드 오름차순
+            filtered.sort((a, b) => {
+                const aHasPrice = (a.basePrice || 0) > 0 ? 0 : 1;
+                const bHasPrice = (b.basePrice || 0) > 0 ? 0 : 1;
+                if (aHasPrice !== bHasPrice) return aHasPrice - bHasPrice;
+                return (a.shortCode || '').localeCompare(b.shortCode || '', undefined, { sensitivity: 'base' });
+            });
+
+            renderResults(filtered, targetPage);
+        }
+
+        function renderResults(stocks, targetPage = 1) {
+            allRenderedStocks = stocks || [];
+            totalPages = Math.max(1, Math.ceil(allRenderedStocks.length / pageSize));
+            currentPage = Math.max(1, Math.min(totalPages, targetPage));
+            resultCountText.textContent = `총 ${allRenderedStocks.length.toLocaleString()}건`;
+
+            if (allRenderedStocks.length === 0) {
+                resultTableBody.innerHTML = '';
                 emptyState.style.display = 'block';
+                tablePagination.classList.add('hidden');
                 return;
             }
 
             emptyState.style.display = 'none';
+            tablePagination.classList.remove('hidden');
+            renderCurrentPage();
+        }
 
-            filtered.forEach(stock => {
+        function renderCurrentPage(explicitItems = null) {
+            resultTableBody.innerHTML = '';
+            const start = (currentPage - 1) * pageSize;
+            const pageItems = explicitItems || allRenderedStocks.slice(start, start + pageSize);
+
+            pageInput.value = String(currentPage);
+            pageInput.max = String(totalPages);
+            pageTotalLabel.textContent = `/ ${totalPages} 페이지`;
+            pageFirstBtn.disabled = currentPage <= 1;
+            pagePrevBtn.disabled = currentPage <= 1;
+            pageNextBtn.disabled = currentPage >= totalPages;
+            pageLastBtn.disabled = currentPage >= totalPages;
+
+            pageItems.forEach(stock => {
                 const tr = document.createElement('tr');
                 const currency = stock.currency || 'KRW';
                 const currencySymbol = currency === 'USD' ? '$' : '₩';
@@ -1264,30 +2377,28 @@
                 }
 
                 tr.innerHTML = `
-                    <td style="font-weight: 700; color: var(--accent-primary); font-family: monospace; font-size: 1rem;">
+                    <td style="font-weight: 700; color: var(--accent-primary); font-family: monospace; font-size: 0.95rem; padding: 0.85rem 0.75rem;">
                         ${stock.shortCode || stock.stockCode}
                     </td>
-                    <td>
+                    <td style="padding: 0.85rem 0.75rem;">
                         <div style="font-weight: 600;">${stock.koreanName || stock.stockName}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${stock.standardCode || ''}</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted); font-family: monospace;">${stock.standardCode || ''}</div>
                     </td>
-                    <td style="text-align: right; white-space: nowrap;">
+                    <td style="text-align: right; white-space: nowrap; padding: 0.85rem 0.75rem;">
                         <div class="price-text">${currencySymbol}${formattedPrice}</div>
                         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem;">${currency}</div>
                     </td>
-                    <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.88rem; white-space: nowrap;">
+                    <td style="text-align: center; font-variant-numeric: tabular-nums; font-size: 0.86rem; white-space: nowrap; padding: 0.85rem 0.75rem;">
                         ${changeHtml}
                     </td>
-                    <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-primary); font-size: 0.9rem; white-space: nowrap;">
-                        ${formattedTradingValue}
+                    <td style="text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 0.85rem 0.75rem;">
+                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;">${formattedTradingValue}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.12rem;">${formattedVolume}</div>
                     </td>
-                    <td style="text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">
-                        ${formattedVolume}
-                    </td>
-                    <td style="text-align: center; white-space: nowrap;">
+                    <td style="text-align: center; white-space: nowrap; padding: 0.85rem 0.65rem;">
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">${stock.securityGroup || '주권'}</span>
                     </td>
-                    <td style="text-align: center; white-space: nowrap;">
+                    <td style="text-align: center; white-space: nowrap; padding: 0.85rem 0.75rem;">
                         <div><span class="badge-market badge-${stock.marketType}">${stock.marketType}</span></div>
                         <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.15rem;">${stock.exchangeCode || 'KRX'}</div>
                     </td>
@@ -1301,22 +2412,13 @@
             });
         }
 
-        // 실시간 거래대금/거래량 상위 인기 종목 로드 (다음 값을 받아올 때까지 기존 캐시 유지 후 교체)
+        // 실시간 거래대금/거래량 상위 인기 종목 로드 (상단 Top 10 즉시 이동 칩만 갱신 - 클라이언트 정렬)
         async function loadPopularPreview() {
             const marketParam = getMarketQueryParam();
-            const marketLabel = marketParam === 'ALL' ? '글로벌 통합'
-                : marketParam === 'KR' ? '국내(KR)'
-                : marketParam === 'US' ? '해외(US)'
-                : marketParam;
-            const sortLabel = activeSort === 'value' ? '거래대금' : '거래량';
-            tableTitle.textContent = `${marketLabel} 실시간 ${sortLabel} 순위 Top 20`;
-
             const cacheKey = `${marketParam}|${activeSort}`;
             const cached = clientPopularCache.get(cacheKey);
             if (cached && cached.data && cached.data.length > 0) {
-                cachedResults = cached.data;
-                renderResults(cachedResults);
-                renderPopularChips(cachedResults.slice(0, 10));
+                renderPopularChips(sortAndSlicePopularItems(cached.data, activeSort, 10));
 
                 if ((Date.now() - cached.timestamp) < POPULAR_CACHE_TTL_MS) {
                     return;
@@ -1329,13 +2431,9 @@
                 if (json.success && json.data && json.data.length > 0) {
                     clientPopularCache.set(cacheKey, { data: json.data, timestamp: Date.now() });
                     if (`${getMarketQueryParam()}|${activeSort}` === cacheKey) {
-                        cachedResults = json.data;
-                        renderResults(cachedResults);
-                        renderPopularChips(json.data.slice(0, 10)); // 상위 10개 칩 렌더링
+                        renderPopularChips(sortAndSlicePopularItems(json.data, activeSort, 10)); // 상위 10개 칩 렌더링
                     }
                 } else if (!cached) {
-                    cachedResults = [];
-                    renderResults([]);
                     renderPopularChips([]);
                 }
             } catch (e) {
@@ -1447,8 +2545,8 @@
                 return `$${tradingVal.toLocaleString()}`;
             }
             return tradingVal >= 100000000
-                ? `${(tradingVal / 100000000).toLocaleString(undefined, { maximumFractionDigits: 0 })}억원`
-                : `${tradingVal.toLocaleString()}원`;
+                ? `₩${(tradingVal / 100000000).toLocaleString(undefined, { maximumFractionDigits: 0 })}억`
+                : `₩${tradingVal.toLocaleString()}`;
         }
 
         function formatBaseTime(input) {
@@ -1696,7 +2794,8 @@
             });
         }
 
-        loadPopularPreview();
+        updateViewModeButtonsUI();
+        loadPopularView();
     </script>
 </body>
 </html>

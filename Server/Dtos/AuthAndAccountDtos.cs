@@ -4,18 +4,25 @@ namespace StockLab.Dtos;
 
 public record GuestLoginRequest(string? Nickname);
 
+public record RegisterRequest(string LoginId, string Password, string Nickname);
+
+public record LoginRequest(string LoginId, string Password);
+
 public record WalletSummaryDto(
     long WalletId,
     string Currency,
     decimal AvailableCash,
-    decimal PendingCash
+    decimal PendingCash,
+    decimal RealizedPnl = 0m
 );
 
 public record StockHoldingDto(
     long HoldingId,
     string StockCode,
     long Quantity,
-    decimal AverageBuyPrice
+    decimal AverageBuyPrice,
+    decimal CurrentPrice = 0m,
+    string Currency = "KRW"
 );
 
 public record ScenarioSummaryDto(
@@ -31,7 +38,8 @@ public record UserProfileDto(
     UserType Type,
     string Nickname,
     DateTime CreatedAtUtc,
-    IReadOnlyList<ScenarioSummaryDto> Scenarios
+    IReadOnlyList<ScenarioSummaryDto> Scenarios,
+    DateTimeOffset? SessionExpiresAtUtc = null
 );
 
 public record AdjustBalanceRequest(

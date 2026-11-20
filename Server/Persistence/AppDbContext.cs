@@ -55,6 +55,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Currency).HasMaxLength(16).IsRequired();
             entity.Property(e => e.AvailableCash).HasPrecision(18, 4);
             entity.Property(e => e.PendingCash).HasPrecision(18, 4);
+            entity.Property(e => e.RealizedPnl).HasPrecision(18, 4).HasDefaultValue(0m);
             entity.Property(e => e.Version).IsRowVersion();
 
             entity.HasIndex(e => new { e.ScenarioId, e.Currency }).IsUnique();

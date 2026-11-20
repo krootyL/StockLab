@@ -14,6 +14,8 @@ public interface IStockMasterProvider
     ValueTask<IReadOnlyDictionary<string, StockMasterItem>> GetByCodesAsync(IEnumerable<string> codes, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<StockMasterItem>> SearchByNameAsync(string query, string market = "ALL", CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<StockMasterItem>> GetByMarketAsync(string marketType, int limit = 20, CancellationToken cancellationToken = default);
+    ValueTask<PagedResult<StockMasterItem>> BrowseByMarketAsync(string market, int page, int pageSize, string? query = null, CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<StockMasterItem>> GetSnapshotAsync(CancellationToken cancellationToken = default);
     void UpdatePrice(string code, decimal newPrice);
 }
 

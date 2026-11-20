@@ -281,8 +281,8 @@ public class TrafficSimulationService
 
         try
         {
-            // 거래량 기준 Top 20에서 메이저 후보군 조회 후 5종목 무작위 추출
-            var top20 = await _rankingService.GetAllVolumeRankTop20Async(isValueSort: false, ct);
+            // 거래량 기준 캐시 풀에서 메이저 후보군 조회 후 5종목 무작위 추출
+            var top20 = await _rankingService.GetAllVolumeRankPoolAsync(isValueSort: false, ct);
             var majorCandidates = new List<StockMasterItem>();
 
             foreach (var item in top20)

@@ -6,7 +6,7 @@ public class User
     /// 18자리 순수 숫자 고유 식별자 (100,000,000,000,000,000 ~ 999,999,999,999,999,999)
     /// </summary>
     public long Uid { get; set; }
-    public UserType Type { get; set; } = UserType.Guest;
+    public UserType Type { get; set; } = UserType.Local;
     public string? LoginId { get; set; }
     public string? PasswordHash { get; set; }
     public string Nickname { get; set; } = string.Empty;

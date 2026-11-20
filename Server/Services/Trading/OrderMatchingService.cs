@@ -449,12 +449,14 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                 if (fillQty <= 0) break;
 
                 var proceedAmount = bid.Price * fillQty;
+                var realizedPnlDelta = (bid.Price - holding.AverageBuyPrice) * fillQty;
 
                 holding.Quantity -= fillQty;
                 holding.ReservedQuantity -= fillQty;
                 holding.UpdatedAtUtc = now;
 
                 wallet.AvailableCash += proceedAmount;
+                wallet.RealizedPnl += realizedPnlDelta;
                 wallet.UpdatedAtUtc = now;
 
                 var trade = new Trade

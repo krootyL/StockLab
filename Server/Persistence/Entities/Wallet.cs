@@ -7,6 +7,7 @@ public class Wallet
     public string Currency { get; set; } = "KRW";
     public decimal AvailableCash { get; set; }
     public decimal PendingCash { get; set; }
+    public decimal RealizedPnl { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
 
     public uint Version { get; set; }

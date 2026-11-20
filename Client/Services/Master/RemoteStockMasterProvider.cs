@@ -13,6 +13,7 @@ public class RemoteStockMasterProvider : IStockMasterProvider
 {
     private sealed record CachedItemEntry(StockMasterItem Item, DateTime ExpiresAtUtc);
     private sealed record CachedListEntry(IReadOnlyList<StockMasterItem> Items, DateTime ExpiresAtUtc);
+    private sealed record CachedBrowseEntry(PagedResult<StockMasterItem> Result, DateTime ExpiresAtUtc);
 
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan SearchTtl = TimeSpan.FromMinutes(3);
@@ -31,6 +32,7 @@ public class RemoteStockMasterProvider : IStockMasterProvider
     private readonly ConcurrentDictionary<string, DateTime> _negativeCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedListEntry> _searchCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedListEntry> _marketCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, CachedBrowseEntry> _browseCache = new(StringComparer.OrdinalIgnoreCase);
 
     public RemoteStockMasterProvider(
         HttpClient httpClient,
@@ -289,6 +291,82 @@ public class RemoteStockMasterProvider : IStockMasterProvider
             {
                 return cached.Items;
             }
+        }
+
+        return Array.Empty<StockMasterItem>();
+    }
+
+    public async ValueTask<PagedResult<StockMasterItem>> BrowseByMarketAsync(
+        string market,
+        int page,
+        int pageSize,
+        string? query = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedMarket = string.IsNullOrWhiteSpace(market) ? "ALL" : market.Trim().ToUpperInvariant();
+        var trimmedQuery = query?.Trim() ?? string.Empty;
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 50);
+        var cacheKey = $"{normalizedMarket}|{trimmedQuery}|{safePage}|{safePageSize}";
+        var now = DateTime.UtcNow;
+
+        if (_browseCache.TryGetValue(cacheKey, out var cached) && now < cached.ExpiresAtUtc)
+        {
+            return cached.Result;
+        }
+
+        try
+        {
+            var url = $"api/stocks/browse?market={Uri.EscapeDataString(normalizedMarket)}&page={safePage}&pageSize={safePageSize}";
+            if (!string.IsNullOrEmpty(trimmedQuery))
+            {
+                url += $"&query={Uri.EscapeDataString(trimmedQuery)}";
+            }
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<PagedResult<StockMasterItem>>>(JsonOptions, cancellationToken);
+                if (apiResp is { Success: true, Data: not null })
+                {
+                    foreach (var item in apiResp.Data.Items)
+                    {
+                        CacheItem(item);
+                    }
+
+                    _browseCache[cacheKey] = new CachedBrowseEntry(apiResp.Data, DateTime.UtcNow.Add(MarketTtl));
+                    return apiResp.Data;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("[원격 마스터 탐색 실패] 시장 '{Market}' p.{Page} 서버 조회 중 예외 발생({Message})", normalizedMarket, safePage, ex.Message);
+            if (cached != null)
+            {
+                return cached.Result;
+            }
+        }
+
+        return new PagedResult<StockMasterItem>(Array.Empty<StockMasterItem>(), safePage, safePageSize, 0, 1);
+    }
+
+    public async ValueTask<IReadOnlyList<StockMasterItem>> GetSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.GetAsync("api/stocks/snapshot", cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<StockMasterItem>>>(JsonOptions, cancellationToken);
+                if (apiResp is { Success: true, Data: not null })
+                {
+                    return apiResp.Data;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("[원격 마스터 스냅샷 실패] 서버 조회 중 예외 발생({Message})", ex.Message);
         }
 
         return Array.Empty<StockMasterItem>();

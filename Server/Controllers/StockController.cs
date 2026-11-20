@@ -27,7 +27,7 @@ public class StockController : ControllerBase
         _quoteService = quoteService;
     }
 
-    // 0. 실시간 거래대금/거래량 상위 인기 종목 조회 (KR / US / ALL 통합 지원): GET /api/stocks/popular?market=ALL&sort=value
+    // 0. 실시간 거래대금/거래량 상위 인기 종목 캐시 풀 조회 (정렬/슬라이싱은 클라이언트 수행): GET /api/stocks/popular?market=ALL&sort=value
     [HttpGet("popular")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PopularStockItem>>>> GetPopularStocks(
         [FromQuery] string market = "ALL",
@@ -115,6 +115,26 @@ public class StockController : ControllerBase
         var clampedLimit = Math.Clamp(limit, 1, 50);
         var items = _store.GetByMarket(marketType, clampedLimit);
         return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(items));
+    }
+
+    // 2-3. 시장/거래소/검색어별 전체 종목 페이징 탐색: GET /api/stocks/browse?market=ALL&page=1&pageSize=10&query=
+    [HttpGet("browse")]
+    public ActionResult<ApiResponse<PagedResult<StockMasterItem>>> BrowseByMarket(
+        [FromQuery] string market = "ALL",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? query = null)
+    {
+        var paged = _store.BrowseByMarket(market, page, pageSize, query);
+        return Ok(ApiResponse<PagedResult<StockMasterItem>>.Ok(paged));
+    }
+
+    // 2-4. 전체 마스터 캐시 스냅샷 조회: GET /api/stocks/snapshot
+    [HttpGet("snapshot")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<StockMasterItem>>>> GetSnapshot(CancellationToken cancellationToken = default)
+    {
+        var snapshot = await _store.GetSnapshotAsync(cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(snapshot));
     }
 
     // 3. 관리자/수동 마스터 데이터 동기화: POST /api/stocks/sync-master?force=true

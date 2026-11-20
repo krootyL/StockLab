@@ -30,6 +30,43 @@ public class StockMasterStore : IStockMasterProvider
         CancellationToken cancellationToken = default)
         => ValueTask.FromResult(GetByMarket(marketType, limit));
 
+    public ValueTask<PagedResult<StockMasterItem>> BrowseByMarketAsync(
+        string market,
+        int page,
+        int pageSize,
+        string? query = null,
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(BrowseByMarket(market, page, pageSize, query));
+
+    public ValueTask<IReadOnlyList<StockMasterItem>> GetSnapshotAsync(CancellationToken cancellationToken = default)
+        => ValueTask.FromResult<IReadOnlyList<StockMasterItem>>(_byCode.Values.ToList());
+
+    public PagedResult<StockMasterItem> BrowseByMarket(string market, int page, int pageSize, string? query = null)
+    {
+        var safePageSize = Math.Clamp(pageSize, 1, 50);
+        var markets = ParseMarketFilter(market);
+        var trimmedQuery = query?.Trim() ?? string.Empty;
+
+        var filtered = _byCode.Values
+            .Where(s => (markets.Count == 0 || markets.Contains(s.MarketType) || markets.Contains(s.ExchangeCode)) &&
+                        (string.IsNullOrEmpty(trimmedQuery) ||
+                         s.KoreanName.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) ||
+                         s.ShortCode.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(s => s.BasePrice > 0)
+            .ThenBy(s => s.ShortCode, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var totalCount = filtered.Count;
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)safePageSize));
+        var safePage = Math.Clamp(page, 1, totalPages);
+        var items = filtered
+            .Skip((safePage - 1) * safePageSize)
+            .Take(safePageSize)
+            .ToList();
+
+        return new PagedResult<StockMasterItem>(items, safePage, safePageSize, totalCount, totalPages);
+    }
+
     public IReadOnlyDictionary<string, StockMasterItem> GetByCodes(IEnumerable<string> codes)
     {
         var result = new Dictionary<string, StockMasterItem>(StringComparer.OrdinalIgnoreCase);
@@ -89,10 +126,10 @@ public class StockMasterStore : IStockMasterProvider
         var markets = ParseMarketFilter(market);
 
         return _byCode.Values
-            .Where(s => (markets.Count == 0 || markets.Contains(s.MarketType)) &&
+            .Where(s => (markets.Count == 0 || markets.Contains(s.MarketType) || markets.Contains(s.ExchangeCode)) &&
                         (s.KoreanName.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) ||
                          s.ShortCode.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)))
-            .Take(20)
+            .Take(200)
             .ToList();
     }
 
@@ -151,6 +188,7 @@ public class StockMasterStore : IStockMasterProvider
                 set.Add("KOSPI");
                 set.Add("KOSDAQ");
                 set.Add("KONEX");
+                set.Add("NXT_KOSPI");
             }
             else
             {

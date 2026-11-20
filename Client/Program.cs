@@ -86,10 +86,67 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// 관리자 페이지(/admin, /Admin/*) 비인가 접근 시 리다이렉트가 아닌 404 Not Found 반환 (페이지 존재 및 정적 소스 은닉)
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase) ||
+        context.Request.Path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase))
+    {
+        var isAdmin = false;
+        var cookieHeader = context.Request.Headers.Cookie.ToString();
+
+        if (!string.IsNullOrWhiteSpace(cookieHeader))
+        {
+            try
+            {
+                var config = context.RequestServices.GetRequiredService<IConfiguration>();
+                var serverBase = config["Server:BaseUrl"];
+                if (string.IsNullOrWhiteSpace(serverBase))
+                {
+                    serverBase = config["Server:HttpBaseUrl"] ?? "http://localhost:5087";
+                }
+
+                var httpFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+                using var client = httpFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(3);
+
+                using var req = new HttpRequestMessage(HttpMethod.Get, $"{serverBase.TrimEnd('/')}/api/auth/me");
+                req.Headers.Add("Cookie", cookieHeader);
+
+                using var res = await client.SendAsync(req, context.RequestAborted);
+                if (res.IsSuccessStatusCode)
+                {
+                    using var doc = await JsonDocument.ParseAsync(await res.Content.ReadAsStreamAsync(context.RequestAborted), cancellationToken: context.RequestAborted);
+                    if (doc.RootElement.TryGetProperty("success", out var succ) && succ.GetBoolean() &&
+                        doc.RootElement.TryGetProperty("data", out var data) &&
+                        data.TryGetProperty("type", out var typeProp) &&
+                        typeProp.TryGetInt32(out var userType) && userType == 99)
+                    {
+                        isAdmin = true;
+                    }
+                }
+            }
+            catch
+            {
+                isAdmin = false;
+            }
+        }
+
+        if (!isAdmin)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/", () => Results.Redirect("/Dashboard/index.html"));
+app.MapGet("/", () => Results.Redirect("/Auth/index.html"));
+app.MapGet("/auth", () => Results.Redirect("/Auth/index.html"));
 app.MapGet("/admin", () => Results.Redirect("/Admin/index.html"));
 app.MapGet("/user", () => Results.Redirect("/User/index.html"));
 

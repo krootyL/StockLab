@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using StockLab.Common;
 using StockLab.Dtos;
 using StockLab.Persistence;
+using StockLab.Persistence.Entities;
+using StockLab.Services.Master;
 
 namespace StockLab.Services.Account;
 
@@ -140,7 +142,10 @@ public class AccountService
     private static UserProfileDto ToUserProfileDto(Persistence.Entities.User user)
         => ToUserProfileDto(user, excludeZeroHoldings: false);
 
-    public static UserProfileDto ToUserProfileDto(Persistence.Entities.User user, bool excludeZeroHoldings) => new(
+    public static UserProfileDto ToUserProfileDto(
+        Persistence.Entities.User user,
+        bool excludeZeroHoldings,
+        StockMasterStore? masterStore = null) => new(
         user.Uid.ToString(),
         user.Type,
         user.Nickname,
@@ -153,12 +158,18 @@ public class AccountService
                 s.CreatedAtUtc,
                 s.Wallets
                     .OrderBy(w => w.Currency)
-                    .Select(w => new WalletSummaryDto(w.Id, w.Currency, w.AvailableCash, w.PendingCash))
+                    .Select(w => new WalletSummaryDto(w.Id, w.Currency, w.AvailableCash, w.PendingCash, w.RealizedPnl))
                     .ToList(),
                 s.Holdings
                     .Where(h => !excludeZeroHoldings || h.Quantity > 0)
                     .OrderBy(h => h.StockCode)
-                    .Select(h => new StockHoldingDto(h.Id, h.StockCode, h.Quantity, h.AverageBuyPrice))
+                    .Select(h =>
+                    {
+                        var master = masterStore?.GetByCode(h.StockCode);
+                        var currentPrice = master is { BasePrice: > 0 } ? master.BasePrice : h.AverageBuyPrice;
+                        var currency = master?.Currency ?? (h.StockCode.All(char.IsDigit) ? "KRW" : "USD");
+                        return new StockHoldingDto(h.Id, h.StockCode, h.Quantity, h.AverageBuyPrice, currentPrice, currency);
+                    })
                     .ToList()))
             .ToList());
 
@@ -207,7 +218,7 @@ public class AccountService
                     s.CreatedAtUtc,
                     s.Wallets
                         .OrderBy(w => w.Currency)
-                        .Select(w => new WalletSummaryDto(w.Id, w.Currency, w.AvailableCash, w.PendingCash))
+                        .Select(w => new WalletSummaryDto(w.Id, w.Currency, w.AvailableCash, w.PendingCash, w.RealizedPnl))
                         .ToList(),
                     s.Holdings
                         .OrderBy(h => h.StockCode)
