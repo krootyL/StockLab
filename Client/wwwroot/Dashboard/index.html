@@ -1536,7 +1536,6 @@
                                 <button type="button" class="scope-seg-btn sort-chip active" data-sort="value" style="padding: 0.28rem 0.62rem; font-size: 0.78rem;">거래대금순</button>
                                 <button type="button" class="scope-seg-btn sort-chip" data-sort="volume" style="padding: 0.28rem 0.62rem; font-size: 0.78rem;">거래량순</button>
                             </div>
-                            <button type="button" class="scope-seg-btn" id="allSnapshotBtn" style="padding: 0.28rem 0.68rem; font-size: 0.78rem; border: 1px solid var(--border-color); border-radius: 8px;">전체 종목</button>
                             <select id="pageSizeSelect" class="page-size-select" style="margin-left: 0; padding: 0.28rem 0.45rem; font-size: 0.78rem;" aria-label="페이지당 표시 개수">
                                 <option value="10" selected>10개씩</option>
                                 <option value="20">20개씩</option>
@@ -1936,7 +1935,6 @@
         const scopeChips = document.querySelectorAll('.scope-chip');
         const marketChips = document.querySelectorAll('.market-chip');
         const sortChips = document.querySelectorAll('.sort-chip');
-        const allSnapshotBtn = document.getElementById('allSnapshotBtn');
         const popularRankingLabel = document.getElementById('popularRankingLabel');
         const tableTitle = document.getElementById('tableTitle');
         const resultCountText = document.getElementById('resultCountText');
@@ -1944,29 +1942,19 @@
 
         let activeScope = 'ALL'; // Group 1: 'ALL' | 'KR' | 'US' | null
         let selectedIndividualMarkets = new Set(); // Group 2: 'KOSPI', 'KOSDAQ', 'KONEX', 'NAS', 'NYS', 'AMS'
-        let activeMode = 'popular'; // 'popular' (실시간 거래대금/거래량순) | 'snapshot' (전체 종목 스냅샷)
         let activeSort = 'value'; // 'value' (거래대금순) | 'volume' (거래량순)
-        let masterSnapshot = null; // 전체 종목 클릭 시 서버에서 받아온 마스터 캐시 스냅샷
+        let masterSnapshot = null; // 서버에서 1분 주기로 받아오는 전체 마스터 스냅샷
         let cachedResults = [];
         let currentAbortController = null;
-        const clientSearchCache = new Map(); // 클라이언트 로컬 캐시 (동일 단어 재검색 시 네트워크 0회)
+        const clientSearchCache = new Map();
+        const SNAPSHOT_REFRESH_MS = 60000;
         const POPULAR_CACHE_TTL_MS = 60000;
         const clientPopularCache = new Map(); // 인기 순위 로컬 캐시 (60초 TTL)
 
         function updateViewModeButtonsUI() {
             sortChips.forEach(c => {
-                c.classList.toggle('active', activeMode === 'popular' && c.dataset.sort === activeSort);
+                c.classList.toggle('active', c.dataset.sort === activeSort);
             });
-            allSnapshotBtn.classList.toggle('active', activeMode === 'snapshot');
-            if (activeMode === 'snapshot') {
-                allSnapshotBtn.style.background = 'var(--accent-primary)';
-                allSnapshotBtn.style.color = '#ffffff';
-                allSnapshotBtn.style.borderColor = 'var(--accent-primary)';
-            } else {
-                allSnapshotBtn.style.background = '';
-                allSnapshotBtn.style.color = '';
-                allSnapshotBtn.style.borderColor = 'var(--border-color)';
-            }
         }
 
         function getMarketQueryParam() {
@@ -1996,12 +1984,7 @@
 
         function onMarketFilterChanged() {
             updateFilterChipsUI();
-            if (activeMode === 'snapshot' || searchInput.value.trim()) {
-                loadPopularPreview();
-                applySnapshotFilterAndRender(1);
-            } else {
-                loadPopularView();
-            }
+            loadUnifiedView(1, false);
         }
 
         // Group 1 Click (전체 / 국내 / 해외 - 단일 배타 선택)
@@ -2030,39 +2013,26 @@
             });
         });
 
-        // Sort Click (거래대금순 vs 거래량순 - 누르는 즉시 서버에서 요청 개수만큼 정렬 후 반환)
+        // Sort Click (거래대금순 vs 거래량순 - 클라이언트 스냅샷에서 즉시 재정렬 및 통합 페이징)
         sortChips.forEach(chip => {
             chip.addEventListener('click', () => {
                 const sort = chip.dataset.sort;
                 activeSort = sort;
-                activeMode = 'popular';
                 updateViewModeButtonsUI();
                 popularRankingLabel.textContent = activeSort === 'value'
                     ? '🔥 실시간 거래대금 Top 10'
                     : '🔥 실시간 거래량 Top 10';
-                searchInput.value = '';
-                loadPopularView();
+                loadUnifiedView(1, false);
             });
         });
 
-        // 전체 종목 버튼 클릭: 클릭한 시점에 서버의 전체 마스터 캐시 스냅샷을 받아 클라이언트에서 정렬/필터/페이징
-        allSnapshotBtn.addEventListener('click', () => {
-            activeMode = 'snapshot';
-            updateViewModeButtonsUI();
-            loadMasterSnapshot(true);
-        });
-
-        // 키워드 완성 시에만 검색 패킷 발송 (검색 버튼 클릭 or Enter 키 입력)
+        // 키워드 완성 시에만 검색 실행 (검색 버튼 클릭 or Enter 키 입력)
         function executeSearch() {
             const query = searchInput.value.trim();
 
             if (!query) {
                 if (currentAbortController) currentAbortController.abort();
-                if (activeMode === 'snapshot') {
-                    applySnapshotFilterAndRender(1);
-                } else {
-                    loadPopularView();
-                }
+                loadUnifiedView(1, false);
                 return;
             }
 
@@ -2072,9 +2042,7 @@
                 return;
             }
 
-            activeMode = 'snapshot';
-            updateViewModeButtonsUI();
-            applySnapshotFilterAndRender(1, query);
+            loadUnifiedView(1, false);
         }
 
         // 검색 버튼 클릭 이벤트
@@ -2127,10 +2095,6 @@
 
         pageSizeSelect.addEventListener('change', () => {
             pageSize = Math.max(1, Number(pageSizeSelect.value) || 10);
-            if (activeMode === 'popular') {
-                loadPopularView();
-                return;
-            }
             currentPage = 1;
             totalPages = Math.max(1, Math.ceil(allRenderedStocks.length / pageSize));
             renderCurrentPage();
@@ -2164,88 +2128,84 @@
             return deduped.slice(0, limitCount);
         }
 
-        function applyPopularPoolToUI(pool, marketParam, sort, marketLabel, sortLabel) {
-            const topItems = sortAndSlicePopularItems(pool, sort, pageSize);
-            tableTitle.textContent = `${marketLabel} 실시간 ${sortLabel} 순위 Top ${topItems.length}`;
-            renderPopularChips(topItems.slice(0, 10));
-            if (activeMode === 'popular') {
-                renderResults(topItems);
-            }
-        }
-
-        async function loadPopularView() {
-            const marketParam = getMarketQueryParam();
-            const marketLabel = marketParam === 'ALL' ? '글로벌 통합'
-                : marketParam === 'KR' ? '국내(KR)'
-                : marketParam === 'US' ? '해외(US)'
-                : marketParam;
-            const sortLabel = activeSort === 'value' ? '거래대금' : '거래량';
-            const cacheKey = `${marketParam}|${activeSort}`;
-            const cached = clientPopularCache.get(cacheKey);
-
-            // 클라이언트 캐시가 유효하면 서버 재요청 없이 즉시 클라이언트에서 정렬/슬라이싱
-            if (cached && cached.data && cached.data.length > 0) {
-                applyPopularPoolToUI(cached.data, marketParam, activeSort, marketLabel, sortLabel);
-                if ((Date.now() - cached.timestamp) < POPULAR_CACHE_TTL_MS) {
-                    return;
-                }
-            } else {
-                tableTitle.textContent = `${marketLabel} 실시간 ${sortLabel} 순위`;
-            }
-
-            try {
-                const res = await fetch(`/api/stocks/popular?market=${encodeURIComponent(marketParam)}&sort=${encodeURIComponent(activeSort)}`);
-                const json = await res.json();
-                if (json?.success && Array.isArray(json.data)) {
-                    clientPopularCache.set(cacheKey, { data: json.data, timestamp: Date.now() });
-                    if (`${getMarketQueryParam()}|${activeSort}` === cacheKey) {
-                        applyPopularPoolToUI(json.data, marketParam, activeSort, marketLabel, sortLabel);
-                    }
-                } else if (!cached && activeMode === 'popular') {
-                    renderResults([]);
-                }
-            } catch (e) {
-                console.error('실시간 순위 로드 실패:', e);
-                if (!cached && activeMode === 'popular') {
-                    renderResults([]);
-                }
-            }
-        }
-
         let snapshotFetchPromise = null;
-        async function loadMasterSnapshot(forceRefresh = false) {
+        async function fetchMasterSnapshotData(forceRefresh = false) {
             if (!forceRefresh && Array.isArray(masterSnapshot)) {
-                applySnapshotFilterAndRender(1);
-                return;
+                return masterSnapshot;
             }
             if (snapshotFetchPromise) {
-                await snapshotFetchPromise;
-                applySnapshotFilterAndRender(1);
-                return;
+                return await snapshotFetchPromise;
             }
 
-            tableTitle.textContent = '전체 종목 스냅샷 불러오는 중...';
-            allSnapshotBtn.disabled = true;
             try {
                 snapshotFetchPromise = fetch('/api/stocks/snapshot')
                     .then(r => r.json())
                     .then(json => {
                         if (json?.success && Array.isArray(json.data)) {
-                            masterSnapshot = json.data;
+                            // 스냅샷 수신 직후 1회만 사전 정렬해 두어 이후 필터/검색 시 재정렬 비용 제거
+                            masterSnapshot = json.data.sort((a, b) => {
+                                const aHasPrice = (a.basePrice || 0) > 0 ? 0 : 1;
+                                const bHasPrice = (b.basePrice || 0) > 0 ? 0 : 1;
+                                if (aHasPrice !== bHasPrice) return aHasPrice - bHasPrice;
+                                return (a.shortCode || '').localeCompare(b.shortCode || '', undefined, { sensitivity: 'base' });
+                            });
                         } else {
                             masterSnapshot = masterSnapshot || [];
                         }
                         return masterSnapshot;
                     });
-                await snapshotFetchPromise;
-                applySnapshotFilterAndRender(1);
+                return await snapshotFetchPromise;
             } catch (e) {
                 console.error('전체 마스터 스냅샷 로드 실패:', e);
-                renderResults([]);
+                return masterSnapshot || [];
             } finally {
                 snapshotFetchPromise = null;
-                allSnapshotBtn.disabled = false;
             }
+        }
+
+        async function fetchPopularPoolData(marketParam, sort, forceRefresh = false) {
+            const cacheKey = `${marketParam}|${sort}`;
+            const cached = clientPopularCache.get(cacheKey);
+            if (!forceRefresh && cached && cached.data && cached.data.length > 0 && (Date.now() - cached.timestamp) < POPULAR_CACHE_TTL_MS) {
+                return cached.data;
+            }
+
+            try {
+                const res = await fetch(`/api/stocks/popular?market=${encodeURIComponent(marketParam)}&sort=${encodeURIComponent(sort)}`);
+                const json = await res.json();
+                if (json?.success && Array.isArray(json.data)) {
+                    clientPopularCache.set(cacheKey, { data: json.data, timestamp: Date.now() });
+                    return json.data;
+                }
+            } catch (e) {
+                console.error('실시간 순위 로드 실패:', e);
+            }
+            return cached?.data || [];
+        }
+
+        // 통합 뷰 로드: 실시간 인기 순위 스냅샷 + 전체 마스터 스냅샷을 함께 확보해 하나로 페이징
+        async function loadUnifiedView(targetPage = 1, forceRefresh = false) {
+            const marketParam = getMarketQueryParam();
+            const sort = activeSort;
+
+            const popPromise = fetchPopularPoolData(marketParam, sort, forceRefresh);
+            const snapPromise = fetchMasterSnapshotData(forceRefresh);
+
+            // 인기 순위가 먼저 준비되면 즉시 상단 Top 10 칩 갱신
+            const popPool = await popPromise;
+            if (getMarketQueryParam() !== marketParam || activeSort !== sort) return;
+
+            const sortedTop10 = sortAndSlicePopularItems(popPool, sort, 10);
+            renderPopularChips(sortedTop10);
+
+            if (!Array.isArray(masterSnapshot)) {
+                // 초기 마스터 스냅샷 수신 전에도 인기 순위로 우선 표시
+                applySnapshotFilterAndRender(targetPage);
+            }
+
+            await snapPromise;
+            if (getMarketQueryParam() !== marketParam || activeSort !== sort) return;
+            applySnapshotFilterAndRender(targetPage);
         }
 
         function resolveSnapshotMarketSet(marketParam) {
@@ -2270,20 +2230,40 @@
         }
 
         async function applySnapshotFilterAndRender(targetPage = 1, explicitQuery = null) {
-            if (!Array.isArray(masterSnapshot)) {
-                await loadMasterSnapshot(false);
-                if (!Array.isArray(masterSnapshot)) return;
-            }
+            const snapshotList = Array.isArray(masterSnapshot) ? masterSnapshot : [];
 
             const marketParam = getMarketQueryParam();
             const query = (explicitQuery !== null ? explicitQuery : searchInput.value.trim()).toLowerCase();
             const allowedMarkets = resolveSnapshotMarketSet(marketParam);
             const scopeTitle = marketParam === 'ALL' ? '전체 시장' : marketParam;
+            const sortLabel = activeSort === 'value' ? '거래대금순' : '거래량순';
             tableTitle.textContent = query
                 ? `'${query}' 검색 결과 (${scopeTitle})`
-                : `${scopeTitle} 전체 종목`;
+                : `${scopeTitle} 전체 종목 (${sortLabel} 우선)`;
 
-            const filtered = masterSnapshot.filter(item => {
+            // 1. 현재 정렬 기준(거래대금순/거래량순)의 실시간 인기 종목 풀을 상단에 그대로 유지
+            const cachedPop = clientPopularCache.get(`${marketParam}|${activeSort}`);
+            let popularPrefix = [];
+            if (cachedPop && Array.isArray(cachedPop.data) && cachedPop.data.length > 0) {
+                popularPrefix = sortAndSlicePopularItems(cachedPop.data, activeSort, cachedPop.data.length);
+                if (query) {
+                    popularPrefix = popularPrefix.filter(item => {
+                        const nameMatch = (item.stockName || '').toLowerCase().includes(query);
+                        const codeMatch = (item.stockCode || '').toLowerCase().includes(query);
+                        return nameMatch || codeMatch;
+                    });
+                }
+            }
+
+            const popularCodeSet = new Set(
+                popularPrefix.map(item => (item.stockCode || item.shortCode || '').toUpperCase()).filter(Boolean)
+            );
+
+            // 2. 중복을 제외한 나머지 전체 마스터 종목을 뒤에 이어붙여 페이징 (스냅샷은 1회 사전 정렬 완료)
+            const remainingMaster = snapshotList.filter(item => {
+                const code = (item.shortCode || '').toUpperCase();
+                if (popularCodeSet.has(code)) return false;
+
                 if (allowedMarkets.size > 0) {
                     const mType = (item.marketType || '').toUpperCase();
                     const eCode = (item.exchangeCode || '').toUpperCase();
@@ -2293,21 +2273,13 @@
                 }
                 if (query) {
                     const nameMatch = (item.koreanName || '').toLowerCase().includes(query);
-                    const codeMatch = (item.shortCode || '').toLowerCase().includes(query);
+                    const codeMatch = code.toLowerCase().includes(query);
                     if (!nameMatch && !codeMatch) return false;
                 }
                 return true;
             });
 
-            // 클라이언트 측 정렬: 기준가(> 0) 우선, 단축코드 오름차순
-            filtered.sort((a, b) => {
-                const aHasPrice = (a.basePrice || 0) > 0 ? 0 : 1;
-                const bHasPrice = (b.basePrice || 0) > 0 ? 0 : 1;
-                if (aHasPrice !== bHasPrice) return aHasPrice - bHasPrice;
-                return (a.shortCode || '').localeCompare(b.shortCode || '', undefined, { sensitivity: 'base' });
-            });
-
-            renderResults(filtered, targetPage);
+            renderResults(popularPrefix.concat(remainingMaster), targetPage);
         }
 
         function renderResults(stocks, targetPage = 1) {
@@ -2795,7 +2767,14 @@
         }
 
         updateViewModeButtonsUI();
-        loadPopularView();
+        loadUnifiedView(1, false);
+
+        // 1분 주기로 새 스냅샷(인기 순위 + 전체 마스터)을 받아 현재 페이지와 조건을 유지한 채 최신 데이터 갱신
+        setInterval(() => {
+            if (!document.hidden) {
+                loadUnifiedView(currentPage, true);
+            }
+        }, SNAPSHOT_REFRESH_MS);
     </script>
 </body>
 </html>

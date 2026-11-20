@@ -1,12 +1,24 @@
 ﻿using System.Collections.Concurrent;
+using System.IO.Compression;
+using System.Text.Json;
+using StockLab.Common;
 using StockLab.Dtos;
 
 namespace StockLab.Services.Master;
 
+public sealed record PreSerializedSnapshot(byte[] JsonBytes, byte[] GzipBytes, string ETag, DateTime ExpiresAtUtc);
+
 public class StockMasterStore : IStockMasterProvider
 {
+    private static readonly TimeSpan SnapshotTtl = TimeSpan.FromMinutes(1);
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
+
     // 스레드 안전한 무중단(Zero-Downtime) 원자적 스왑 및 실시간 가격 갱신을 위해 ConcurrentDictionary로 관리
     private ConcurrentDictionary<string, StockMasterItem> _byCode = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _snapshotLock = new();
+    private PreSerializedSnapshot? _cachedSnapshot;
+    private int _snapshotDirty = 1;
+    private long _snapshotVersion;
 
     public StockMasterItem? TryGetCachedByCode(string code) => GetByCode(code);
 
@@ -40,6 +52,74 @@ public class StockMasterStore : IStockMasterProvider
 
     public ValueTask<IReadOnlyList<StockMasterItem>> GetSnapshotAsync(CancellationToken cancellationToken = default)
         => ValueTask.FromResult<IReadOnlyList<StockMasterItem>>(_byCode.Values.ToList());
+
+    /// <summary>
+    /// 고정 주기(30초 TTL) + 변경 감지(_snapshotDirty) 기반으로 사전 직렬화된 JSON/Gzip 스냅샷을 반환한다.
+    /// TTL 내 동시 요청은 추가 직렬화·힙 할당 없이 동일 바이트 배열을 공유한다.
+    /// </summary>
+    public PreSerializedSnapshot GetSerializedSnapshot()
+    {
+        var current = Volatile.Read(ref _cachedSnapshot);
+        var now = DateTime.UtcNow;
+        if (current != null && (Volatile.Read(ref _snapshotDirty) == 0 || now < current.ExpiresAtUtc))
+        {
+            return current;
+        }
+
+        // 기존 캐시가 이미 있으면 1개 스레드만 백그라운드로 재포장하고, 나머지 요청은 대기 없이 기존 캐시 즉시 반환
+        bool lockTaken = false;
+        try
+        {
+            if (current != null)
+            {
+                Monitor.TryEnter(_snapshotLock, ref lockTaken);
+                if (!lockTaken)
+                {
+                    return current;
+                }
+            }
+            else
+            {
+                Monitor.Enter(_snapshotLock, ref lockTaken);
+            }
+
+            current = _cachedSnapshot;
+            now = DateTime.UtcNow;
+            if (current != null && (Volatile.Read(ref _snapshotDirty) == 0 || now < current.ExpiresAtUtc))
+            {
+                return current;
+            }
+
+            Volatile.Write(ref _snapshotDirty, 0);
+            var items = _byCode.Values.ToList();
+            var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(
+                ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(items),
+                SnapshotJsonOptions);
+
+            byte[] gzipBytes;
+            using (var ms = new MemoryStream())
+            {
+                using (var gz = new GZipStream(ms, CompressionLevel.Fastest, leaveOpen: true))
+                {
+                    gz.Write(jsonBytes, 0, jsonBytes.Length);
+                }
+                gzipBytes = ms.ToArray();
+            }
+
+            var version = Interlocked.Increment(ref _snapshotVersion);
+            var etag = $"\"master-{items.Count}-{version}\"";
+            var rebuilt = new PreSerializedSnapshot(jsonBytes, gzipBytes, etag, now.Add(SnapshotTtl));
+            Volatile.Write(ref _cachedSnapshot, rebuilt);
+            return rebuilt;
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                Monitor.Exit(_snapshotLock);
+            }
+        }
+    }
 
     public PagedResult<StockMasterItem> BrowseByMarket(string market, int page, int pageSize, string? query = null)
     {
@@ -92,8 +172,9 @@ public class StockMasterStore : IStockMasterProvider
             newDict[item.ShortCode] = item;
         }
 
-        // 메모리 참조를 원자적으로 교체
+        // 메모리 참조를 원자적으로 교체하고 기존 스냅샷 캐시는 유지한 채 갱신 플래그만 표시
         Interlocked.Exchange(ref _byCode, newDict);
+        Volatile.Write(ref _snapshotDirty, 1);
     }
 
     // 실시간 호가/시세 수신 시 디스크 마스터 파일은 유지하고 인메모리 DB 가격만 덮어쓰기
@@ -105,6 +186,7 @@ public class StockMasterStore : IStockMasterProvider
         if (_byCode.TryGetValue(trimmed, out var existing))
         {
             _byCode[trimmed] = existing with { BasePrice = newPrice };
+            Volatile.Write(ref _snapshotDirty, 1);
         }
     }
 

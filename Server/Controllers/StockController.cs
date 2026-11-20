@@ -129,12 +129,29 @@ public class StockController : ControllerBase
         return Ok(ApiResponse<PagedResult<StockMasterItem>>.Ok(paged));
     }
 
-    // 2-4. 전체 마스터 캐시 스냅샷 조회: GET /api/stocks/snapshot
+    // 2-4. 전체 마스터 캐시 스냅샷 조회 (TTL 사전 직렬화 JSON/Gzip + ETag 지원): GET /api/stocks/snapshot
     [HttpGet("snapshot")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<StockMasterItem>>>> GetSnapshot(CancellationToken cancellationToken = default)
+    public IActionResult GetSnapshot()
     {
-        var snapshot = await _store.GetSnapshotAsync(cancellationToken);
-        return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(snapshot));
+        var snapshot = _store.GetSerializedSnapshot();
+
+        if (Request.Headers.IfNoneMatch.Any(v => string.Equals(v, snapshot.ETag, StringComparison.Ordinal)))
+        {
+            return StatusCode(StatusCodes.Status304NotModified);
+        }
+
+        Response.Headers.ETag = snapshot.ETag;
+        Response.Headers.CacheControl = "public, max-age=60";
+
+        var acceptEncoding = Request.Headers.AcceptEncoding.ToString();
+        if (acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))
+        {
+            Response.Headers.ContentEncoding = "gzip";
+            Response.Headers.Vary = "Accept-Encoding";
+            return File(snapshot.GzipBytes, "application/json; charset=utf-8");
+        }
+
+        return File(snapshot.JsonBytes, "application/json; charset=utf-8");
     }
 
     // 3. 관리자/수동 마스터 데이터 동기화: POST /api/stocks/sync-master?force=true

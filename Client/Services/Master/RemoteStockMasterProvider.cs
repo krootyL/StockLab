@@ -18,6 +18,7 @@ public class RemoteStockMasterProvider : IStockMasterProvider
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan SearchTtl = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan MarketTtl = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan SnapshotTtl = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan NegativeTtl = TimeSpan.FromMinutes(1);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -33,6 +34,8 @@ public class RemoteStockMasterProvider : IStockMasterProvider
     private readonly ConcurrentDictionary<string, CachedListEntry> _searchCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedListEntry> _marketCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, CachedBrowseEntry> _browseCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _snapshotLock = new(1, 1);
+    private CachedListEntry? _snapshotCache;
 
     public RemoteStockMasterProvider(
         HttpClient httpClient,
@@ -352,14 +355,30 @@ public class RemoteStockMasterProvider : IStockMasterProvider
 
     public async ValueTask<IReadOnlyList<StockMasterItem>> GetSnapshotAsync(CancellationToken cancellationToken = default)
     {
+        var cached = Volatile.Read(ref _snapshotCache);
+        var now = DateTime.UtcNow;
+        if (cached != null && now < cached.ExpiresAtUtc)
+        {
+            return cached.Items;
+        }
+
+        await _snapshotLock.WaitAsync(cancellationToken);
         try
         {
+            cached = _snapshotCache;
+            now = DateTime.UtcNow;
+            if (cached != null && now < cached.ExpiresAtUtc)
+            {
+                return cached.Items;
+            }
+
             using var response = await _httpClient.GetAsync("api/stocks/snapshot", cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<StockMasterItem>>>(JsonOptions, cancellationToken);
                 if (apiResp is { Success: true, Data: not null })
                 {
+                    Volatile.Write(ref _snapshotCache, new CachedListEntry(apiResp.Data, DateTime.UtcNow.Add(SnapshotTtl)));
                     return apiResp.Data;
                 }
             }
@@ -367,6 +386,14 @@ public class RemoteStockMasterProvider : IStockMasterProvider
         catch (Exception ex)
         {
             _logger.LogWarning("[원격 마스터 스냅샷 실패] 서버 조회 중 예외 발생({Message})", ex.Message);
+            if (cached != null)
+            {
+                return cached.Items;
+            }
+        }
+        finally
+        {
+            _snapshotLock.Release();
         }
 
         return Array.Empty<StockMasterItem>();
