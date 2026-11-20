@@ -83,6 +83,40 @@ public class StockController : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(results));
     }
 
+    // 2-1. 다건 단축코드 선택 일괄 조회 (클라이언트 인기순위/대장주 매핑용, 최대 50건): GET /api/stocks/batch?codes=005930,000660
+    [HttpGet("batch")]
+    public ActionResult<ApiResponse<IReadOnlyList<StockMasterItem>>> GetBatchByCodes([FromQuery] string codes)
+    {
+        if (string.IsNullOrWhiteSpace(codes))
+        {
+            return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(Array.Empty<StockMasterItem>()));
+        }
+
+        var codeList = codes
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(50);
+
+        var items = _store.GetByCodes(codeList).Values.ToList();
+        return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(items));
+    }
+
+    // 2-2. 특정 시장 종목 선택 조회 (코넥스 등 시장별 상위 N건, 최대 50건): GET /api/stocks/market/KONEX?limit=20
+    [HttpGet("market/{marketType}")]
+    public ActionResult<ApiResponse<IReadOnlyList<StockMasterItem>>> GetByMarket(
+        string marketType,
+        [FromQuery] int limit = 20)
+    {
+        if (string.IsNullOrWhiteSpace(marketType))
+        {
+            return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(Array.Empty<StockMasterItem>()));
+        }
+
+        var clampedLimit = Math.Clamp(limit, 1, 50);
+        var items = _store.GetByMarket(marketType, clampedLimit);
+        return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(items));
+    }
+
     // 3. 관리자/수동 마스터 데이터 동기화: POST /api/stocks/sync-master?force=true
     [HttpPost("sync-master")]
     public async Task<ActionResult<ApiResponse<object>>> SyncMaster([FromQuery] bool force = false, CancellationToken cancellationToken = default)

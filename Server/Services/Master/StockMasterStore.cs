@@ -3,10 +3,48 @@ using StockLab.Dtos;
 
 namespace StockLab.Services.Master;
 
-public class StockMasterStore
+public class StockMasterStore : IStockMasterProvider
 {
     // 스레드 안전한 무중단(Zero-Downtime) 원자적 스왑 및 실시간 가격 갱신을 위해 ConcurrentDictionary로 관리
     private ConcurrentDictionary<string, StockMasterItem> _byCode = new(StringComparer.OrdinalIgnoreCase);
+
+    public StockMasterItem? TryGetCachedByCode(string code) => GetByCode(code);
+
+    public ValueTask<StockMasterItem?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(GetByCode(code));
+
+    public ValueTask<IReadOnlyDictionary<string, StockMasterItem>> GetByCodesAsync(
+        IEnumerable<string> codes,
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(GetByCodes(codes));
+
+    public ValueTask<IReadOnlyList<StockMasterItem>> SearchByNameAsync(
+        string query,
+        string market = "ALL",
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(SearchByName(query, market));
+
+    public ValueTask<IReadOnlyList<StockMasterItem>> GetByMarketAsync(
+        string marketType,
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(GetByMarket(marketType, limit));
+
+    public IReadOnlyDictionary<string, StockMasterItem> GetByCodes(IEnumerable<string> codes)
+    {
+        var result = new Dictionary<string, StockMasterItem>(StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in codes)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            var trimmed = raw.Trim();
+            if (_byCode.TryGetValue(trimmed, out var item))
+            {
+                result[item.ShortCode] = item;
+            }
+        }
+
+        return result;
+    }
 
     public void Initialize(IEnumerable<StockMasterItem> items)
     {

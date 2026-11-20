@@ -23,7 +23,7 @@ public class KisRankingService
 
     private readonly HttpClient _httpClient;
     private readonly KisSessionService _tokenService;
-    private readonly StockMasterStore _store;
+    private readonly IStockMasterProvider _store;
     private readonly IMemoryCache _cache;
     private readonly KisSettings _settings;
     private readonly ILogger<KisRankingService> _logger;
@@ -40,7 +40,7 @@ public class KisRankingService
     public KisRankingService(
         HttpClient httpClient,
         KisSessionService tokenService,
-        StockMasterStore store,
+        IStockMasterProvider store,
         IMemoryCache cache,
         IOptions<KisSettings> options,
         ILogger<KisRankingService> logger)
@@ -120,7 +120,7 @@ public class KisRankingService
             "KOSPI" => GetKrVolumeRankTop20Async("0001", CacheKeyKospi, isValueSort, cancellationToken),
             "KOSDAQ" => GetKrVolumeRankTop20Async("1001", CacheKeyKosdaq, isValueSort, cancellationToken),
             "US" or "USA" => GetUsVolumeRankTop20Async(isValueSort, cancellationToken),
-            "KONEX" => Task.FromResult(GetKonexPopularStocks()),
+            "KONEX" => GetKonexPopularStocksAsync(cancellationToken),
             _ => GetAllVolumeRankTop20Async(isValueSort, cancellationToken)
         };
     }
@@ -138,7 +138,7 @@ public class KisRankingService
         return GetOrRefreshRankingAsync(
             cacheKey,
             ct => FetchKrFromKisAsync(marketCode, isValueSort, ct),
-            GetFallbackKrPopularStocks);
+            () => GetFallbackKrPopularStocksAsync(cancellationToken));
     }
 
     private async Task<RankingCacheEntry?> FetchKrFromKisAsync(
@@ -200,10 +200,12 @@ public class KisRankingService
                 return null;
             }
 
-            var list = new List<PopularStockItem>(rankResult.Output.Count);
+            var topItems = rankResult.Output.Take(20).ToList();
+            var masterMap = await _store.GetByCodesAsync(topItems.Select(x => x.StockCode), ct);
+            var list = new List<PopularStockItem>(topItems.Count);
             int rank = 1;
 
-            foreach (var item in rankResult.Output.Take(20))
+            foreach (var item in topItems)
             {
                 decimal.TryParse(item.CurrentPrice, out var price);
                 decimal.TryParse(item.PriceChange, out var priceChange);
@@ -225,7 +227,7 @@ public class KisRankingService
                     _store.UpdatePrice(item.StockCode, price);
                 }
 
-                var master = _store.GetByCode(item.StockCode);
+                masterMap.TryGetValue(item.StockCode, out var master);
                 var marketType = master?.MarketType ?? "KOSPI";
                 var exchangeCode = master?.ExchangeCode ?? "KRX";
 
@@ -283,7 +285,7 @@ public class KisRankingService
         return GetOrRefreshRankingAsync(
             cacheKey,
             ct => FetchUsFromKisAsync(isValueSort, ct),
-            GetFallbackUsPopularStocks);
+            () => GetFallbackUsPopularStocksAsync(cancellationToken));
     }
 
     private async Task<RankingCacheEntry?> FetchUsFromKisAsync(
@@ -338,7 +340,13 @@ public class KisRankingService
             var list = new List<PopularStockItem>(rankResult.Output.Count);
             int rank = 1;
 
-            foreach (var item in rankResult.Output.Take(20))
+            var topItems = rankResult.Output.Take(20).ToList();
+            var tickers = topItems
+                .Select(x => string.IsNullOrWhiteSpace(x.Symbol) ? x.RealSymbol : x.Symbol)
+                .Where(t => !string.IsNullOrWhiteSpace(t));
+            var masterMap = await _store.GetByCodesAsync(tickers, ct);
+
+            foreach (var item in topItems)
             {
                 decimal.TryParse(item.LastPrice, out var price);
                 decimal.TryParse(item.PriceChange, out var priceChange);
@@ -361,7 +369,7 @@ public class KisRankingService
                     _store.UpdatePrice(ticker, price);
                 }
 
-                var master = _store.GetByCode(ticker);
+                masterMap.TryGetValue(ticker, out var master);
                 var stockName = master?.KoreanName ?? (!string.IsNullOrWhiteSpace(item.Name) ? item.Name : ticker);
 
                 var popularItem = new PopularStockItem(
@@ -415,7 +423,7 @@ public class KisRankingService
     private async Task<IReadOnlyList<PopularStockItem>> GetOrRefreshRankingAsync(
         string cacheKey,
         Func<CancellationToken, Task<RankingCacheEntry?>> fetchFromKisAsync,
-        Func<IReadOnlyList<PopularStockItem>> fallbackFactory)
+        Func<Task<IReadOnlyList<PopularStockItem>>> fallbackFactory)
     {
         if (RankingStore.TryGetValue(cacheKey, out var existing) && existing.Items.Count > 0)
         {
@@ -444,7 +452,7 @@ public class KisRankingService
                 return freshEntry.Items;
             }
 
-            var fallbackItems = fallbackFactory();
+            var fallbackItems = await fallbackFactory();
             RankingStore[cacheKey] = new RankingCacheEntry(fallbackItems, DateTime.UtcNow.Add(FailureRetryDelay));
             return fallbackItems;
         }
@@ -513,9 +521,10 @@ public class KisRankingService
             .ToList();
     }
 
-    private IReadOnlyList<PopularStockItem> GetKonexPopularStocks()
+    private async Task<IReadOnlyList<PopularStockItem>> GetKonexPopularStocksAsync(CancellationToken cancellationToken)
     {
-        return _store.GetByMarket("KONEX", 20)
+        var items = await _store.GetByMarketAsync("KONEX", 20, cancellationToken);
+        return items
             .Select((master, idx) => new PopularStockItem(
                 Rank: idx + 1,
                 StockCode: master.ShortCode,
@@ -534,7 +543,7 @@ public class KisRankingService
     /// <summary>
     /// 국내 대표 대장주 Fallback
     /// </summary>
-    private IReadOnlyList<PopularStockItem> GetFallbackKrPopularStocks()
+    private async Task<IReadOnlyList<PopularStockItem>> GetFallbackKrPopularStocksAsync(CancellationToken cancellationToken)
     {
         var targetCodes = new[]
         {
@@ -550,13 +559,13 @@ public class KisRankingService
             "035720"  // 카카오
         };
 
+        var masterMap = await _store.GetByCodesAsync(targetCodes, cancellationToken);
         var list = new List<PopularStockItem>();
         int rank = 1;
 
         foreach (var code in targetCodes)
         {
-            var master = _store.GetByCode(code);
-            if (master != null)
+            if (masterMap.TryGetValue(code, out var master))
             {
                 list.Add(new PopularStockItem(
                     Rank: rank++,
@@ -579,7 +588,7 @@ public class KisRankingService
     /// <summary>
     /// 미국 대표 대장주 Fallback
     /// </summary>
-    private IReadOnlyList<PopularStockItem> GetFallbackUsPopularStocks()
+    private async Task<IReadOnlyList<PopularStockItem>> GetFallbackUsPopularStocksAsync(CancellationToken cancellationToken)
     {
         var usTickers = new[]
         {
@@ -605,12 +614,13 @@ public class KisRankingService
             "COST"  // 코스트코
         };
 
+        var masterMap = await _store.GetByCodesAsync(usTickers, cancellationToken);
         var list = new List<PopularStockItem>();
         int rank = 1;
 
         foreach (var ticker in usTickers)
         {
-            var master = _store.GetByCode(ticker);
+            masterMap.TryGetValue(ticker, out var master);
             list.Add(new PopularStockItem(
                 Rank: rank++,
                 StockCode: ticker,

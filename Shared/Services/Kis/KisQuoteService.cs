@@ -22,7 +22,7 @@ public class KisQuoteService
 
     private readonly HttpClient _httpClient;
     private readonly KisSessionService _tokenService;
-    private readonly StockMasterStore _store;
+    private readonly IStockMasterProvider _store;
     private readonly IMemoryCache _cache;
     private readonly KisSettings _settings;
     private readonly ILogger<KisQuoteService> _logger;
@@ -34,7 +34,7 @@ public class KisQuoteService
     public KisQuoteService(
         HttpClient httpClient,
         KisSessionService tokenService,
-        StockMasterStore store,
+        IStockMasterProvider store,
         IMemoryCache cache,
         IOptions<KisSettings> options,
         ILogger<KisQuoteService> logger)
@@ -88,7 +88,7 @@ public class KisQuoteService
     /// </summary>
     public async Task<StockQuoteResponse> GetQuoteAsync(string code, CancellationToken cancellationToken = default)
     {
-        var master = _store.GetByCode(code)
+        var master = await _store.GetByCodeAsync(code, cancellationToken)
             ?? throw new StockLabException(ErrorCode.StockNotFound, $"종목코드 '{code}'를 찾을 수 없습니다.");
 
         if (QuoteStore.TryGetValue(master.ShortCode, out var existingEntry))
@@ -205,7 +205,7 @@ public class KisQuoteService
     /// </summary>
     public async Task<RealtimeStockStatus?> GetOrderBookAsync(string code, CancellationToken cancellationToken = default)
     {
-        var master = _store.GetByCode(code);
+        var master = await _store.GetByCodeAsync(code, cancellationToken);
         if (master == null)
         {
             return null;

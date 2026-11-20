@@ -23,7 +23,7 @@ public class KisSocketService : IHostedService
     }
 
     private readonly KisSessionService _sessionService;
-    private readonly StockMasterStore _masterStore;
+    private readonly IStockMasterProvider _masterStore;
     private readonly IHubContext<StockQuoteHub> _hubContext;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly KisSettings _settings;
@@ -41,7 +41,7 @@ public class KisSocketService : IHostedService
 
     public KisSocketService(
         KisSessionService sessionService,
-        StockMasterStore masterStore,
+        IStockMasterProvider masterStore,
         IHubContext<StockQuoteHub> hubContext,
         IServiceScopeFactory scopeFactory,
         IOptions<KisSettings> options,
@@ -91,7 +91,7 @@ public class KisSocketService : IHostedService
         if (string.IsNullOrWhiteSpace(stockCode) || string.IsNullOrWhiteSpace(connectionId)) return;
         var code = stockCode.Trim().ToUpperInvariant();
 
-        var master = _masterStore.GetByCode(code);
+        var master = await _masterStore.GetByCodeAsync(code, cancellationToken);
         var isMarketOpen = MarketSessionHelper.IsMarketOpen(master?.MarketType ?? "KOSPI", DateTime.UtcNow);
 
         // 이미 캐싱된 호가가 있으면 즉시 전달, 없으면 인메모리 마스터 DB의 현재가/기준가로 초기 스냅샷 생성
@@ -284,7 +284,7 @@ public class KisSocketService : IHostedService
     {
         if (_webSocket == null || _webSocket.State != WebSocketState.Open) return;
 
-        var masterItem = _masterStore.GetByCode(stockCode);
+        var masterItem = await _masterStore.GetByCodeAsync(stockCode, cancellationToken);
         if (masterItem == null)
         {
             _logger.LogWarning("{Prefix} 마스터에서 종목을 찾을 수 없습니다: {StockCode}", LogConstants.KisApiPrefix, stockCode);
@@ -429,7 +429,7 @@ public class KisSocketService : IHostedService
 
         var stockCode = fields[0].Trim();
         var updatedTime = FormatHhMmSs(fields[1]);
-        var master = _masterStore.GetByCode(stockCode);
+        var master = _masterStore.TryGetCachedByCode(stockCode);
 
         var asks = new List<OrderBookLevel>(10);
         var bids = new List<OrderBookLevel>(10);
@@ -465,7 +465,7 @@ public class KisSocketService : IHostedService
 
         var symbol = fields[1].Trim();
         var updatedTime = FormatHhMmSs(fields[6]);
-        var master = _masterStore.GetByCode(symbol);
+        var master = _masterStore.TryGetCachedByCode(symbol);
 
         var bidPrice = ParseDecimal(fields[11]);
         var askPrice = ParseDecimal(fields[12]);

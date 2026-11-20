@@ -1,9 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
-using StockLab.BackgroundServices;
 using StockLab.Common;
-using StockLab.Controllers;
 using StockLab.Hubs;
 using StockLab.Middlewares;
 using StockLab.Services.Kis;
@@ -27,30 +25,28 @@ builder.Services.Configure<KisSettings>(options =>
     options.WebSocketKey = "ws://ops.koreainvestment.com:21000";
 });
 
-// 2. KIS 직접 통신, 계정별 초당 호출 제한(18회), 마스터 동기화 및 SignalR 허브 등록
+// 2. KIS 직접 통신, 계정별 초당 호출 제한(18회), 원격 마스터 TTL 캐시 프로바이더 및 SignalR 허브 등록
 builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(2));
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(StockController).Assembly);
+builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddSingleton<KisRateLimiter>();
 builder.Services.AddTransient<KisRateLimitHandler>();
 builder.Services.AddHttpClient<KisSessionService>().AddHttpMessageHandler<KisRateLimitHandler>();
-builder.Services.AddHttpClient<StockMasterSyncService>().AddHttpMessageHandler<KisRateLimitHandler>();
 builder.Services.AddHttpClient<KisRankingService>().AddHttpMessageHandler<KisRateLimitHandler>();
 builder.Services.AddHttpClient<KisQuoteService>().AddHttpMessageHandler<KisRateLimitHandler>();
 
-builder.Services.AddSingleton<StockMasterStore>();
-builder.Services.AddSingleton<StockMasterParser>();
+// 마스터 파일(.mst/.cod)을 로컬에 두지 않고, Server API에서 필요한 종목만 선택 조회해 TTL 캐싱
+builder.Services.AddHttpClient<RemoteStockMasterProvider>();
+builder.Services.AddSingleton<IStockMasterProvider>(sp => sp.GetRequiredService<RemoteStockMasterProvider>());
 builder.Services.AddSingleton<KisSocketService>();
 
-builder.Services.AddHostedService<StockMasterSyncBackgroundService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<KisSocketService>());
 
 var app = builder.Build();
 
-// 3. 클라이언트 기동 시 로컬 KIS 키 검증 및 마스터 데이터 적재 (키 미설정 시 접근 전면 제한)
+// 3. 클라이언트 기동 시 로컬 KIS 키 검증 (키 미설정 시 접근 전면 제한)
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 var kisSettings = app.Services.GetRequiredService<IOptions<KisSettings>>().Value;
 var hasValidKisConfig = !string.IsNullOrWhiteSpace(kisSettings.AppKey) && !string.IsNullOrWhiteSpace(kisSettings.AppSecret);
@@ -61,20 +57,8 @@ if (!hasValidKisConfig)
 }
 else
 {
-    logger.LogInformation("[클라이언트 KIS 설정 성공] AppKey({KeyLen}자리), AppSecret({SecretLen}자리) 로드 완료.",
+    logger.LogInformation("[클라이언트 KIS 설정 성공] AppKey({KeyLen}자리), AppSecret({SecretLen}자리) 로드 완료",
         kisSettings.AppKey.Length, kisSettings.AppSecret.Length);
-
-    using var scope = app.Services.CreateScope();
-    var syncService = scope.ServiceProvider.GetRequiredService<StockMasterSyncService>();
-    var (success, count, _) = await syncService.SyncMasterDataAsync(forceDownload: false);
-    if (success)
-    {
-        logger.LogInformation("[클라이언트 기동] 마스터 데이터 {Count:N0}건이 메모리에 준비되었습니다.", count);
-    }
-    else
-    {
-        logger.LogWarning("[클라이언트 기동 경고] 초기 마스터 데이터 동기화에 실패했습니다.");
-    }
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();

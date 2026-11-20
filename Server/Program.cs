@@ -33,8 +33,7 @@ builder.Services.Configure<KisSettings>(options =>
 
 // 2. 서비스 등록
 builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(2));
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(StockLab.Controllers.StockController).Assembly);
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
@@ -99,6 +98,7 @@ builder.Services.AddHttpClient<KisQuoteService>().AddHttpMessageHandler<KisRateL
 // 싱글톤 데이터 파서, 인메모리 스토어 및 KIS 소켓 서비스
 builder.Services.AddSingleton<PendingList>();
 builder.Services.AddSingleton<StockMasterStore>();
+builder.Services.AddSingleton<IStockMasterProvider>(sp => sp.GetRequiredService<StockMasterStore>());
 builder.Services.AddSingleton<StockMasterParser>();
 builder.Services.AddSingleton<KisSocketService>();
 builder.Services.AddSingleton<ForcedMatchingService>();
