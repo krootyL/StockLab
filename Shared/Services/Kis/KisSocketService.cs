@@ -201,8 +201,127 @@ public class KisSocketService : IHostedService
     }
 
     /// <summary>
+    /// 클라이언트의 관심종목 목록 전체를 로컬 KIS 토큰 기반 WebSocket에 다중 구독·동기화합니다.
+    /// 상세 모달 단일 구독(connectionId)과 간섭하지 않도록 "{connectionId}:watchlist" 구독 키로 분리 관리합니다.
+    /// </summary>
+    public async Task SyncWatchlistStocksAsync(
+        IReadOnlyCollection<string> stockCodes,
+        string connectionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(connectionId)) return;
+        var watchlistSubscriberId = $"{connectionId}:watchlist";
+
+        var desiredCodes = (stockCodes ?? Array.Empty<string>())
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(40) // KIS 단일 웹소켓 세션당 최대 구독 한도 보호
+            .ToList();
+
+        var desiredSet = new HashSet<string>(desiredCodes, StringComparer.OrdinalIgnoreCase);
+        var openMarketDesired = new List<string>();
+
+        foreach (var code in desiredCodes)
+        {
+            var master = await _masterStore.GetByCodeAsync(code, cancellationToken);
+            var isMarketOpen = MarketSessionHelper.IsMarketOpen(master?.MarketType ?? "KOSPI", DateTime.UtcNow);
+
+            if (_realtimeStockCache.TryGetValue(code, out var cached))
+            {
+                await _hubContext.Clients
+                    .Group($"stock:{code}")
+                    .SendAsync("ReceiveRealtimeStock", cached.Data, cancellationToken);
+            }
+            else if (master != null)
+            {
+                var initialLevel = master.BasePrice > 0
+                    ? new List<OrderBookLevel> { new(master.BasePrice, 0) }
+                    : new List<OrderBookLevel>();
+
+                var initialStatus = new RealtimeStockStatus(
+                    StockCode: master.ShortCode,
+                    MarketType: master.MarketType,
+                    ExchangeCode: master.ExchangeCode,
+                    Currency: master.Currency,
+                    UpdatedTime: isMarketOpen ? "메모리 기준" : "장 마감 (메모리 기준)",
+                    Asks: initialLevel,
+                    Bids: initialLevel,
+                    TotalAskSize: 0,
+                    TotalBidSize: 0
+                );
+
+                await _hubContext.Clients
+                    .Group($"stock:{code}")
+                    .SendAsync("ReceiveRealtimeStock", initialStatus, cancellationToken);
+            }
+
+            if (isMarketOpen)
+            {
+                openMarketDesired.Add(code);
+            }
+        }
+
+        await _socketLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (_stocksByConnection.TryGetValue(watchlistSubscriberId, out var existingCodes))
+            {
+                var removedCodes = existingCodes
+                    .Where(prev => !desiredSet.Contains(prev))
+                    .ToList();
+
+                foreach (var removed in removedCodes)
+                {
+                    await RemoveSubscriptionLockedAsync(removed, watchlistSubscriberId, "관심종목 해제", cancellationToken);
+                }
+            }
+
+            if (openMarketDesired.Count == 0)
+            {
+                return;
+            }
+
+            if (!_stocksByConnection.TryGetValue(watchlistSubscriberId, out var connStocks))
+            {
+                connStocks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _stocksByConnection[watchlistSubscriberId] = connStocks;
+            }
+
+            foreach (var code in openMarketDesired)
+            {
+                connStocks.Add(code);
+
+                if (!_subscribersByStock.TryGetValue(code, out var subscribers))
+                {
+                    subscribers = new HashSet<string>(StringComparer.Ordinal);
+                    _subscribersByStock[code] = subscribers;
+                }
+
+                if (!subscribers.Add(watchlistSubscriberId))
+                {
+                    continue;
+                }
+
+                var nextCount = subscribers.Count;
+                _logger.LogInformation("[실시간 호가/관심종목] 종목({StockCode}) 열람자 수 증가: {Count}명", code, nextCount);
+
+                if (nextCount == 1)
+                {
+                    await EnsureConnectedAsync(cancellationToken);
+                    await SendSubscriptionPacketAsync(code, "1", cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            _socketLock.Release();
+        }
+    }
+
+    /// <summary>
     /// 브라우저 새로고침, 탭 종료, 서버/네트워크 재연결 등으로 SignalR 연결이 끊어졌을 때
-    /// 해당 클라이언트가 열람 중이던 모든 종목의 구독을 자동 정리한다.
+    /// 해당 클라이언트가 열람 중이던 모든 종목(단일 모달 및 관심종목)의 구독을 자동 정리한다.
     /// </summary>
     public async Task RemoveConnectionAsync(string connectionId, CancellationToken cancellationToken = default)
     {
@@ -211,19 +330,22 @@ public class KisSocketService : IHostedService
         await _socketLock.WaitAsync(cancellationToken);
         try
         {
-            if (!_stocksByConnection.TryGetValue(connectionId, out var subscribedStocks) || subscribedStocks.Count == 0)
+            foreach (var key in new[] { connectionId, $"{connectionId}:watchlist" })
             {
-                _stocksByConnection.Remove(connectionId);
-                return;
-            }
+                if (!_stocksByConnection.TryGetValue(key, out var subscribedStocks) || subscribedStocks.Count == 0)
+                {
+                    _stocksByConnection.Remove(key);
+                    continue;
+                }
 
-            var codes = subscribedStocks.ToList();
-            foreach (var code in codes)
-            {
-                await RemoveSubscriptionLockedAsync(code, connectionId, "연결 종료", cancellationToken);
-            }
+                var codes = subscribedStocks.ToList();
+                foreach (var code in codes)
+                {
+                    await RemoveSubscriptionLockedAsync(code, key, "연결 종료", cancellationToken);
+                }
 
-            _stocksByConnection.Remove(connectionId);
+                _stocksByConnection.Remove(key);
+            }
         }
         finally
         {

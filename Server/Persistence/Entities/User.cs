@@ -13,6 +13,8 @@ public class User
     public DateTime CreatedAtUtc { get; set; }
     public DateTime LastActiveAtUtc { get; set; }
 
-    public ICollection<Scenario> Scenarios { get; set; } = new List<Scenario>();
+    public ICollection<Strategy> Strategies { get; set; } = new List<Strategy>();
+    public ICollection<UserWallet> AccountWallets { get; set; } = new List<UserWallet>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<WatchlistItem> WatchlistItems { get; set; } = new List<WatchlistItem>();
 }

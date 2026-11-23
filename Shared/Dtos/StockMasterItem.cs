@@ -8,5 +8,14 @@ public record StockMasterItem(
     decimal BasePrice,              // 주식 기준가 (전일 종가)
     string MarketType,              // 시장 구분 ("KOSPI", "KOSDAQ", "KONEX", "USA")
     string ExchangeCode = "KRX",     // 거래소 코드 ("KRX", "NAS", "NYS", "AMS")
-    string Currency = "KRW"          // 결제 통화 ("KRW", "USD")
+    string Currency = "KRW",         // 결제 통화 ("KRW", "USD")
+    DateTime? UpdatedAtUtc = null    // 해당 종목 데이터(기준가/현재가) 최종 갱신 시각 (UTC)
+);
+
+public sealed record StockMasterSnapshotResult(
+    IReadOnlyList<StockMasterItem> Items,
+    string ETag,
+    long MasterVersion,
+    DateTime MasterSyncedAtUtc,
+    bool NotModified = false
 );

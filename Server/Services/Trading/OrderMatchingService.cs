@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using StockLab.Dtos;
@@ -100,20 +100,20 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                 return;
             }
 
-            // 교착 상태(Deadlock 40P01) 방지: 다중 종목 병렬 체결 시 ScenarioId 오름차순으로 지갑/보유종목 일괄 선점
-            var scenarioIds = openOrders.Select(o => o.ScenarioId).Distinct().OrderBy(id => id).ToArray();
+            // 교착 상태(Deadlock 40P01) 방지: 다중 종목 병렬 체결 시 StrategyId 오름차순으로 지갑/보유종목 일괄 선점
+            var strategyIds = openOrders.Select(o => o.StrategyId).Distinct().OrderBy(id => id).ToArray();
             var lockedWallets = await _db.Wallets
                 .FromSqlInterpolated(
-                    $"SELECT *, xmin FROM wallets WHERE \"ScenarioId\" = ANY({scenarioIds}) AND \"Currency\" = {orderBook.Currency} ORDER BY \"ScenarioId\" FOR UPDATE")
+                    $"SELECT *, xmin FROM wallets WHERE \"StrategyId\" = ANY({strategyIds}) AND \"Currency\" = {orderBook.Currency} ORDER BY \"StrategyId\" FOR UPDATE")
                 .ToListAsync(ct);
 
             var lockedHoldings = await _db.Stocks
                 .FromSqlInterpolated(
-                    $"SELECT *, xmin FROM stocks WHERE \"ScenarioId\" = ANY({scenarioIds}) AND \"StockCode\" = {orderBook.StockCode} ORDER BY \"ScenarioId\" FOR UPDATE")
+                    $"SELECT *, xmin FROM stocks WHERE \"StrategyId\" = ANY({strategyIds}) AND \"StockCode\" = {orderBook.StockCode} ORDER BY \"StrategyId\" FOR UPDATE")
                 .ToListAsync(ct);
 
-            var walletsByScenario = lockedWallets.ToDictionary(w => w.ScenarioId);
-            var holdingsByScenario = lockedHoldings.ToDictionary(s => s.ScenarioId);
+            var walletsByStrategy = lockedWallets.ToDictionary(w => w.StrategyId);
+            var holdingsByStrategy = lockedHoldings.ToDictionary(s => s.StrategyId);
 
             var buyOrders = openOrders
                 .Where(o => o.Side == OrderSide.Buy)
@@ -139,13 +139,13 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
             {
                 if (askBudgets.Count > 0 && buyOrders.Count > 0)
                 {
-                    if (await ProcessBuyOrdersAsync(buyOrders, askBudgets, orderBook.Currency, walletsByScenario, holdingsByScenario, now, createdTrades, ct))
+                    if (await ProcessBuyOrdersAsync(buyOrders, askBudgets, orderBook.Currency, walletsByStrategy, holdingsByStrategy, now, createdTrades, ct))
                         stateChanged = true;
                 }
 
                 if (bidBudgets.Count > 0 && sellOrders.Count > 0)
                 {
-                    if (await ProcessSellOrdersAsync(sellOrders, bidBudgets, orderBook.Currency, walletsByScenario, holdingsByScenario, now, createdTrades, ct))
+                    if (await ProcessSellOrdersAsync(sellOrders, bidBudgets, orderBook.Currency, walletsByStrategy, holdingsByStrategy, now, createdTrades, ct))
                         stateChanged = true;
                 }
             }
@@ -169,7 +169,7 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                 var trade = new TradeDto(
                     tradeEntity.Id,
                     tradeEntity.OrderId,
-                    tradeEntity.ScenarioId,
+                    tradeEntity.StrategyId,
                     tradeEntity.StockCode,
                     tradeEntity.Side,
                     tradeEntity.ExecutedPrice,
@@ -215,8 +215,8 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
         List<Order> buyOrders,
         List<TickLevelBudget> askBudgets,
         string currency,
-        Dictionary<long, Wallet> walletsByScenario,
-        Dictionary<long, Stocks> holdingsByScenario,
+        Dictionary<long, Wallet> walletsByStrategy,
+        Dictionary<long, Stocks> holdingsByStrategy,
         DateTime now,
         List<(long Uid, Trade Entity)> createdTrades,
         CancellationToken ct)
@@ -242,18 +242,18 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
             var remainingOrderQty = order.Quantity - order.FilledQuantity;
             if (remainingOrderQty <= 0) continue;
 
-            if (!walletsByScenario.TryGetValue(order.ScenarioId, out var wallet))
+            if (!walletsByStrategy.TryGetValue(order.StrategyId, out var wallet))
             {
                 wallet = await _db.Wallets
                     .FromSqlInterpolated(
-                        $"SELECT *, xmin FROM wallets WHERE \"ScenarioId\" = {order.ScenarioId} AND \"Currency\" = {currency} FOR UPDATE")
+                        $"SELECT *, xmin FROM wallets WHERE \"StrategyId\" = {order.StrategyId} AND \"Currency\" = {currency} FOR UPDATE")
                     .FirstOrDefaultAsync(ct);
 
                 if (wallet == null) continue;
-                walletsByScenario[order.ScenarioId] = wallet;
+                walletsByStrategy[order.StrategyId] = wallet;
             }
 
-            holdingsByScenario.TryGetValue(order.ScenarioId, out var holding);
+            holdingsByStrategy.TryGetValue(order.StrategyId, out var holding);
 
             // 주문 요청 시점에 묶인 총 예수금(order.TotalAmount)에서 기체결 누적액을 제외한 잔여 예약금만 사용
             // (체결 중 가용금액 AvailableCash에서 추가 인출하지 않음)
@@ -306,7 +306,7 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                 {
                     holding = new Stocks
                     {
-                        ScenarioId = order.ScenarioId,
+                        StrategyId = order.StrategyId,
                         StockCode = order.StockCode,
                         Quantity = fillQty,
                         ReservedQuantity = 0,
@@ -314,7 +314,7 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                         UpdatedAtUtc = now
                     };
                     _db.Stocks.Add(holding);
-                    holdingsByScenario[order.ScenarioId] = holding;
+                    holdingsByStrategy[order.StrategyId] = holding;
                 }
                 else
                 {
@@ -328,7 +328,7 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                 var trade = new Trade
                 {
                     OrderId = order.OrderId,
-                    ScenarioId = order.ScenarioId,
+                    StrategyId = order.StrategyId,
                     StockCode = order.StockCode,
                     Side = OrderSide.Buy,
                     ExecutedPrice = ask.Price,
@@ -387,8 +387,8 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
         List<Order> sellOrders,
         List<TickLevelBudget> bidBudgets,
         string currency,
-        Dictionary<long, Wallet> walletsByScenario,
-        Dictionary<long, Stocks> holdingsByScenario,
+        Dictionary<long, Wallet> walletsByStrategy,
+        Dictionary<long, Stocks> holdingsByStrategy,
         DateTime now,
         List<(long Uid, Trade Entity)> createdTrades,
         CancellationToken ct)
@@ -400,29 +400,29 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
             var remainingOrderQty = order.Quantity - order.FilledQuantity;
             if (remainingOrderQty <= 0) continue;
 
-            if (!walletsByScenario.TryGetValue(order.ScenarioId, out var wallet))
+            if (!walletsByStrategy.TryGetValue(order.StrategyId, out var wallet))
             {
                 wallet = await _db.Wallets
                     .FromSqlInterpolated(
-                        $"SELECT *, xmin FROM wallets WHERE \"ScenarioId\" = {order.ScenarioId} AND \"Currency\" = {currency} FOR UPDATE")
+                        $"SELECT *, xmin FROM wallets WHERE \"StrategyId\" = {order.StrategyId} AND \"Currency\" = {currency} FOR UPDATE")
                     .FirstOrDefaultAsync(ct);
 
                 if (wallet != null)
                 {
-                    walletsByScenario[order.ScenarioId] = wallet;
+                    walletsByStrategy[order.StrategyId] = wallet;
                 }
             }
 
-            if (!holdingsByScenario.TryGetValue(order.ScenarioId, out var holding))
+            if (!holdingsByStrategy.TryGetValue(order.StrategyId, out var holding))
             {
                 holding = await _db.Stocks
                     .FromSqlInterpolated(
-                        $"SELECT *, xmin FROM stocks WHERE \"ScenarioId\" = {order.ScenarioId} AND \"StockCode\" = {order.StockCode} FOR UPDATE")
+                        $"SELECT *, xmin FROM stocks WHERE \"StrategyId\" = {order.StrategyId} AND \"StockCode\" = {order.StockCode} FOR UPDATE")
                     .FirstOrDefaultAsync(ct);
 
                 if (holding != null)
                 {
-                    holdingsByScenario[order.ScenarioId] = holding;
+                    holdingsByStrategy[order.StrategyId] = holding;
                 }
             }
 
@@ -462,7 +462,7 @@ public class OrderMatchingService : IRealtimeOrderBookConsumer
                 var trade = new Trade
                 {
                     OrderId = order.OrderId,
-                    ScenarioId = order.ScenarioId,
+                    StrategyId = order.StrategyId,
                     StockCode = order.StockCode,
                     Side = OrderSide.Sell,
                     ExecutedPrice = bid.Price,

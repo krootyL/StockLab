@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using StockLab.Common;
 using StockLab.Dtos;
@@ -83,7 +83,7 @@ public class TrafficSimulationService
         }
 
         var userCount = Math.Clamp(targetCount / 20, 1, 5);
-        var dummyUsers = new List<(long Uid, long ScenarioId)>();
+        var dummyUsers = new List<(long Uid, long StrategyId)>();
         var batchTag = Guid.NewGuid().ToString("N")[..8];
 
         try
@@ -92,11 +92,11 @@ public class TrafficSimulationService
             {
                 var profile = await _guestAuthService.CreateGuestSessionAsync($"__dummy_{batchTag}_{u}", ct);
                 var uid = long.Parse(profile.Uid);
-                var scenarioId = profile.Scenarios[0].ScenarioId;
-                dummyUsers.Add((uid, scenarioId));
+                var strategyId = profile.Strategies[0].StrategyId;
+                dummyUsers.Add((uid, strategyId));
 
-                await _accountService.AdjustBalanceAsync(scenarioId, "KRW", 200_000_000m, ct);
-                await _accountService.AdjustBalanceAsync(scenarioId, "USD", 200_000m, ct);
+                await _accountService.AdjustBalanceAsync(strategyId, "KRW", 200_000_000m, ct);
+                await _accountService.AdjustBalanceAsync(strategyId, "USD", 200_000m, ct);
             }
 
             var quotedBase = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
@@ -112,7 +112,7 @@ public class TrafficSimulationService
                 var stock = stocks[i % stocks.Count];
                 var placed = await _orderService.PlaceOrderAsync(
                     user.Uid,
-                    new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Buy, OrderType.Market, seedQty, null),
+                    new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Buy, OrderType.Market, seedQty, null),
                     ct);
                 quotedBase.TryAdd(stock.ShortCode, placed.OrderPrice);
                 placedCount++;
@@ -146,7 +146,7 @@ public class TrafficSimulationService
                     var lowLimit = Math.Round(refPrice * 0.85m, 2);
                     var ord = await _orderService.PlaceOrderAsync(
                         user.Uid,
-                        new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Buy, OrderType.Limit, 2, lowLimit),
+                        new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Buy, OrderType.Limit, 2, lowLimit),
                         ct);
                     cancelTargets.Add((user.Uid, ord.OrderId));
                     placedCount++;
@@ -158,14 +158,14 @@ public class TrafficSimulationService
                     var mult = new[] { 0.95m, 1.00m, 1.02m, 1.05m }[rng.Next(0, 4)];
                     await _orderService.PlaceOrderAsync(
                         user.Uid,
-                        new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Buy, OrderType.Limit, rng.Next(1, 5), Math.Round(refPrice * mult, 2)),
+                        new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Buy, OrderType.Limit, rng.Next(1, 5), Math.Round(refPrice * mult, 2)),
                         ct);
                 }
                 else if (roll < 5)
                 {
                     await _orderService.PlaceOrderAsync(
                         user.Uid,
-                        new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Buy, OrderType.Market, rng.Next(1, 5), null),
+                        new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Buy, OrderType.Market, rng.Next(1, 5), null),
                         ct);
                 }
                 else if (roll < 8)
@@ -175,14 +175,14 @@ public class TrafficSimulationService
                     {
                         await _orderService.PlaceOrderAsync(
                             user.Uid,
-                            new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Sell, OrderType.Limit, rng.Next(1, 4), Math.Round(refPrice * sellMult, 2)),
+                            new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Sell, OrderType.Limit, rng.Next(1, 4), Math.Round(refPrice * sellMult, 2)),
                             ct);
                     }
                     catch (StockLabException)
                     {
                         await _orderService.PlaceOrderAsync(
                             user.Uid,
-                            new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Buy, OrderType.Limit, rng.Next(1, 4), Math.Round(refPrice * 0.97m, 2)),
+                            new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Buy, OrderType.Limit, rng.Next(1, 4), Math.Round(refPrice * 0.97m, 2)),
                             ct);
                     }
                 }
@@ -192,14 +192,14 @@ public class TrafficSimulationService
                     {
                         await _orderService.PlaceOrderAsync(
                             user.Uid,
-                            new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Sell, OrderType.Market, rng.Next(1, 4), null),
+                            new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Sell, OrderType.Market, rng.Next(1, 4), null),
                             ct);
                     }
                     catch (StockLabException)
                     {
                         await _orderService.PlaceOrderAsync(
                             user.Uid,
-                            new PlaceOrderRequest(user.ScenarioId, stock.ShortCode, OrderSide.Buy, OrderType.Market, 2, null),
+                            new PlaceOrderRequest(user.StrategyId, stock.ShortCode, OrderSide.Buy, OrderType.Market, 2, null),
                             ct);
                     }
                 }
@@ -240,10 +240,10 @@ public class TrafficSimulationService
                 .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToListAsync(ct);
 
-            var scenarioIds = dummyUsers.Select(d => d.ScenarioId).ToArray();
+            var strategyIds = dummyUsers.Select(d => d.StrategyId).ToArray();
             var tradeStats = await _db.Trades
                 .AsNoTracking()
-                .Where(t => scenarioIds.Contains(t.ScenarioId))
+                .Where(t => strategyIds.Contains(t.StrategyId))
                 .GroupBy(_ => 1)
                 .Select(g => new { Count = g.Count(), Shares = g.Sum(t => t.ExecutedQuantity) })
                 .FirstOrDefaultAsync(ct);
@@ -340,12 +340,12 @@ public class TrafficSimulationService
             TotalBidSize: qty);
     }
 
-    private async Task CleanupDummyDataAsync(List<(long Uid, long ScenarioId)> dummyUsers)
+    private async Task CleanupDummyDataAsync(List<(long Uid, long StrategyId)> dummyUsers)
     {
         try
         {
             var uids = dummyUsers.Select(d => d.Uid).ToArray();
-            var scenarioIds = dummyUsers.Select(d => d.ScenarioId).ToArray();
+            var strategyIds = dummyUsers.Select(d => d.StrategyId).ToArray();
 
             var dummyOpenOrderIds = await _db.Orders
                 .AsNoTracking()
@@ -353,12 +353,12 @@ public class TrafficSimulationService
                 .Select(o => o.OrderId)
                 .ToArrayAsync(CancellationToken.None);
 
-            await _db.Trades.Where(t => scenarioIds.Contains(t.ScenarioId)).ExecuteDeleteAsync(CancellationToken.None);
+            await _db.Trades.Where(t => strategyIds.Contains(t.StrategyId)).ExecuteDeleteAsync(CancellationToken.None);
             await _db.Orders.Where(o => uids.Contains(o.Uid)).ExecuteDeleteAsync(CancellationToken.None);
             _pendingList.RemoveOrders(dummyOpenOrderIds);
-            await _db.Stocks.Where(s => scenarioIds.Contains(s.ScenarioId)).ExecuteDeleteAsync(CancellationToken.None);
-            await _db.Wallets.Where(w => scenarioIds.Contains(w.ScenarioId)).ExecuteDeleteAsync(CancellationToken.None);
-            await _db.Scenarios.Where(s => scenarioIds.Contains(s.Id)).ExecuteDeleteAsync(CancellationToken.None);
+            await _db.Stocks.Where(s => strategyIds.Contains(s.StrategyId)).ExecuteDeleteAsync(CancellationToken.None);
+            await _db.Wallets.Where(w => strategyIds.Contains(w.StrategyId)).ExecuteDeleteAsync(CancellationToken.None);
+            await _db.Strategies.Where(s => strategyIds.Contains(s.Id)).ExecuteDeleteAsync(CancellationToken.None);
             await _db.Users.Where(u => uids.Contains(u.Uid)).ExecuteDeleteAsync(CancellationToken.None);
         }
         catch (Exception ex)

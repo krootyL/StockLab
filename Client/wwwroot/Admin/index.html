@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -185,7 +185,7 @@
       flex-wrap: wrap;
     }
     .pagination-btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .pagination-btns button { padding: 4px 10px; font-size: 12px; }
+    .pagination-btns button { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 6px; font-size: 12px; }
     .pagination-btns button.active { background: var(--accent); border-color: var(--accent); color: #ffffff; }
     .page-jump-wrap { display: inline-flex; align-items: center; gap: 6px; margin: 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
     .page-input {
@@ -285,7 +285,7 @@
         </span>
         <span id="forcedMatchState" class="status-pill">OFF</span>
       </label>
-      <input id="adminKeyInput" type="password" placeholder="X-Admin-Key 입력" />
+      <input id="adminKeyInput" type="text" autocomplete="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security: disc;" placeholder="X-Admin-Key 입력" />
       <button class="primary" onclick="connectAdmin()">연결 / 새로고침</button>
       <span id="authStatus" class="status-pill">미연결</span>
     </div>
@@ -335,13 +335,13 @@
     <section class="panel">
       <div class="panel-header">
         <span id="detailTitle">유저 상세</span>
-        <div class="row" id="scenarioPickerWrap" style="display:none;">
-          <label for="scenarioSelect" style="color:var(--muted);font-size:12px;">시나리오</label>
-          <select id="scenarioSelect" onchange="onScenarioChange()"></select>
+        <div class="row" id="strategyPickerWrap" style="display:none;">
+          <label for="strategySelect" style="color:var(--muted);font-size:12px;">투자 전략</label>
+          <select id="strategySelect" onchange="onStrategyChange()"></select>
         </div>
       </div>
       <div class="detail-body" id="detailBody">
-        <div class="empty">좌측에서 유저를 선택하면 시나리오, 지갑, 보유종목, 주문/체결 내역을 보고 수정할 수 있습니다.</div>
+        <div class="empty">좌측에서 유저를 선택하면 투자 전략, 지갑, 보유종목, 주문/체결 내역을 보고 수정할 수 있습니다.</div>
       </div>
     </section>
   </main>
@@ -374,7 +374,7 @@
 
     let users = [];
     let selectedUid = null;
-    let selectedScenarioId = null;
+    let selectedStrategyId = null;
     let activeTab = 'wallets';
     let mainView = 'users';
     let globalOrderFilter = 'pending';
@@ -385,8 +385,8 @@
     let usersTotalPages = 1;
     let usersTotalCount = 0;
     let globalOrdersPage = 1;
-    let scenarioOrdersPage = 1;
-    let scenarioTradesPage = 1;
+    let strategyOrdersPage = 1;
+    let strategyTradesPage = 1;
 
     function getInputValue(id) {
       const el = document.getElementById(id);
@@ -498,8 +498,12 @@
         <div class="pagination-bar">
           <span>총 <strong>${totalCount.toLocaleString('ko-KR')}</strong>건</span>
           <div class="pagination-btns">
-            <button ${safePage <= 1 ? 'disabled' : ''} onclick="${handlerName}(1)">맨앞</button>
-            <button ${safePage <= 1 ? 'disabled' : ''} onclick="${handlerName}(${safePage - 1})">앞</button>
+            <button type="button" ${safePage <= 1 ? 'disabled' : ''} onclick="${handlerName}(1)" title="첫 페이지" aria-label="첫 페이지">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="6" y2="18"/><path d="m17 18-6-6 6-6"/></svg>
+            </button>
+            <button type="button" ${safePage <= 1 ? 'disabled' : ''} onclick="${handlerName}(${safePage - 1})" title="이전 페이지" aria-label="이전 페이지">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
             <span class="page-jump-wrap">
               <input
                 type="number"
@@ -508,14 +512,20 @@
                 min="1"
                 max="${safeTotalPages}"
                 value="${safePage}"
+                autocomplete="off"
+                data-lpignore="true"
                 aria-label="현재 페이지"
                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); jumpToAdminPage('${handlerName}', this.value, ${safeTotalPages}); }"
                 onchange="jumpToAdminPage('${handlerName}', this.value, ${safeTotalPages})"
               />
               <span>/ ${safeTotalPages} 페이지</span>
             </span>
-            <button ${safePage >= safeTotalPages ? 'disabled' : ''} onclick="${handlerName}(${safePage + 1})">뒤</button>
-            <button ${safePage >= safeTotalPages ? 'disabled' : ''} onclick="${handlerName}(${safeTotalPages})">맨뒤</button>
+            <button type="button" ${safePage >= safeTotalPages ? 'disabled' : ''} onclick="${handlerName}(${safePage + 1})" title="다음 페이지" aria-label="다음 페이지">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+            <button type="button" ${safePage >= safeTotalPages ? 'disabled' : ''} onclick="${handlerName}(${safeTotalPages})" title="마지막 페이지" aria-label="마지막 페이지">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 6-6-6-6"/><line x1="18" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
       `;
@@ -531,13 +541,13 @@
       renderGlobalOrders();
     }
 
-    function goScenarioOrdersPage(page) {
-      scenarioOrdersPage = Math.max(1, page);
+    function goStrategyOrdersPage(page) {
+      strategyOrdersPage = Math.max(1, page);
       renderDetail();
     }
 
-    function goScenarioTradesPage(page) {
-      scenarioTradesPage = Math.max(1, page);
+    function goStrategyTradesPage(page) {
+      strategyTradesPage = Math.max(1, page);
       renderDetail();
     }
 
@@ -566,7 +576,7 @@
         } else if (selectedUid) {
           const stillExists = users.find(u => u.uid === selectedUid);
           if (stillExists) renderDetail();
-          else { selectedUid = null; selectedScenarioId = null; }
+          else { selectedUid = null; selectedStrategyId = null; }
         }
       } catch (err) {
         statusEl.textContent = '인증/오류';
@@ -609,7 +619,7 @@
           <thead>
             <tr>
               <th>OrderId</th>
-              ${includeUserCols ? '<th>유저</th><th>시나리오</th>' : ''}
+              ${includeUserCols ? '<th>유저</th><th>투자 전략</th>' : ''}
               <th>종목</th><th>구분</th><th>유형</th><th>상태</th>${includeUserCols ? '<th>대기 사유</th>' : ''}<th>주문가</th><th>체결/수량</th><th>주문시각</th><th>관리</th>
             </tr>
           </thead>
@@ -618,7 +628,7 @@
               const canCancel = o.status === 1 || o.status === 2;
               const statusClass = o.status === 3 ? 'badge-filled' : (canCancel ? 'badge-pending' : 'badge-cancelled');
               const userCell = includeUserCols
-                ? `<td><a href="#" style="color:var(--accent);text-decoration:none;" onclick="jumpToUser('${esc(o.uid)}');return false;">${esc(o.nickname)}</a></td><td class="mono">#${o.scenarioId}</td>`
+                ? `<td><a href="#" style="color:var(--accent);text-decoration:none;" onclick="jumpToUser('${esc(o.uid)}');return false;">${esc(o.nickname)}</a></td><td class="mono">#${o.strategyId}</td>`
                 : '';
               const waitCell = includeUserCols ? `<td>${buildWaitReasonBadge(o)}</td>` : '';
               return `
@@ -653,7 +663,7 @@
     async function renderGlobalOrders(preserveLayout = false) {
       const body = document.getElementById('detailBody');
       document.getElementById('detailTitle').textContent = '전체 주문 현황';
-      document.getElementById('scenarioPickerWrap').style.display = 'none';
+      document.getElementById('strategyPickerWrap').style.display = 'none';
 
       let wrap = document.getElementById('globalOrdersWrap');
       if (!preserveLayout || !wrap) {
@@ -716,9 +726,9 @@
     function selectUser(uid) {
       selectedUid = uid;
       const user = users.find(u => u.uid === uid);
-      selectedScenarioId = user?.scenarios?.[0]?.scenarioId ?? null;
-      scenarioOrdersPage = 1;
-      scenarioTradesPage = 1;
+      selectedStrategyId = user?.strategies?.[0]?.strategyId ?? null;
+      strategyOrdersPage = 1;
+      strategyTradesPage = 1;
       mainView = 'users';
       document.getElementById('navUsersBtn')?.classList.add('active');
       document.getElementById('navOrdersBtn')?.classList.remove('active');
@@ -726,17 +736,17 @@
       renderDetail();
     }
 
-    function onScenarioChange() {
-      selectedScenarioId = Number(getInputValue('scenarioSelect'));
-      scenarioOrdersPage = 1;
-      scenarioTradesPage = 1;
+    function onStrategyChange() {
+      selectedStrategyId = Number(getInputValue('strategySelect'));
+      strategyOrdersPage = 1;
+      strategyTradesPage = 1;
       renderDetail();
     }
 
     async function renderDetail() {
       const user = users.find(u => u.uid === selectedUid);
       const body = document.getElementById('detailBody');
-      const pickerWrap = document.getElementById('scenarioPickerWrap');
+      const pickerWrap = document.getElementById('strategyPickerWrap');
       if (!user) {
         pickerWrap.style.display = 'none';
         body.innerHTML = '<div class="empty">좌측에서 유저를 선택해주세요.</div>';
@@ -744,11 +754,11 @@
       }
 
       document.getElementById('detailTitle').textContent = `${user.nickname} (${user.uid})`;
-      const select = document.getElementById('scenarioSelect');
-      select.innerHTML = user.scenarios.map(s => `<option value="${s.scenarioId}" ${s.scenarioId === selectedScenarioId ? 'selected' : ''}>#${s.scenarioId} ${esc(s.name)}</option>`).join('');
-      pickerWrap.style.display = user.scenarios.length ? 'flex' : 'none';
+      const select = document.getElementById('strategySelect');
+      select.innerHTML = user.strategies.map(s => `<option value="${s.strategyId}" ${s.strategyId === selectedStrategyId ? 'selected' : ''}>#${s.strategyId} ${esc(s.name)}</option>`).join('');
+      pickerWrap.style.display = user.strategies.length ? 'flex' : 'none';
 
-      const scenario = user.scenarios.find(s => s.scenarioId === selectedScenarioId);
+      const strategy = user.strategies.find(s => s.strategyId === selectedStrategyId);
       const tabHeader = `
         <div class="card">
           <div class="row" style="justify-content:space-between;">
@@ -762,14 +772,14 @@
         </div>
         <div class="tabs">
           <button class="tab-btn ${activeTab === 'wallets' ? 'active' : ''}" onclick="switchTab('wallets')">지갑 / 시드 조정</button>
-          <button class="tab-btn ${activeTab === 'holdings' ? 'active' : ''}" onclick="switchTab('holdings')">보유종목 (${scenario?.holdings?.length ?? 0})</button>
+          <button class="tab-btn ${activeTab === 'holdings' ? 'active' : ''}" onclick="switchTab('holdings')">보유종목 (${strategy?.holdings?.length ?? 0})</button>
           <button class="tab-btn ${activeTab === 'orders' ? 'active' : ''}" onclick="switchTab('orders')">주문 내역</button>
           <button class="tab-btn ${activeTab === 'trades' ? 'active' : ''}" onclick="switchTab('trades')">체결 이력</button>
         </div>
         <div id="tabContent">불러오는 중...</div>
       `;
       body.innerHTML = tabHeader;
-      await renderTabContent(scenario);
+      await renderTabContent(strategy);
     }
 
     function switchTab(tab) {
@@ -777,9 +787,9 @@
       renderDetail();
     }
 
-    async function renderTabContent(scenario) {
+    async function renderTabContent(strategy) {
       const el = document.getElementById('tabContent');
-      if (!scenario) { el.innerHTML = '<div class="empty">시나리오가 없습니다.</div>'; return; }
+      if (!strategy) { el.innerHTML = '<div class="empty">투자 전략이 없습니다.</div>'; return; }
 
       if (activeTab === 'wallets') {
         el.innerHTML = `
@@ -791,13 +801,13 @@
                 <option value="USD">USD</option>
               </select>
               <input id="adjustAmount" type="number" step="any" placeholder="예: 500000 또는 -100000" style="width:200px;" />
-              <button class="primary" onclick="adjustBalance(${scenario.scenarioId})">적용</button>
+              <button class="primary" onclick="adjustBalance(${strategy.strategyId})">적용</button>
             </div>
           </div>
           <table>
             <thead><tr><th>Wallet ID</th><th>통화</th><th>예수가능금 (Available)</th><th>주문대기금 (Pending)</th></tr></thead>
             <tbody>
-              ${scenario.wallets.map(w => `
+              ${strategy.wallets.map(w => `
                 <tr>
                   <td class="mono">${w.walletId}</td>
                   <td><strong>${esc(w.currency)}</strong></td>
@@ -809,12 +819,12 @@
           </table>
         `;
       } else if (activeTab === 'holdings') {
-        if (!scenario.holdings.length) { el.innerHTML = '<div class="empty">보유 종목이 없습니다.</div>'; return; }
+        if (!strategy.holdings.length) { el.innerHTML = '<div class="empty">보유 종목이 없습니다.</div>'; return; }
         el.innerHTML = `
           <table>
             <thead><tr><th>Holding ID</th><th>종목코드</th><th>보유수량</th><th>평균매수가</th></tr></thead>
             <tbody>
-              ${scenario.holdings.map(h => `
+              ${strategy.holdings.map(h => `
                 <tr>
                   <td class="mono">${h.holdingId}</td>
                   <td class="mono"><strong>${esc(h.stockCode)}</strong></td>
@@ -827,19 +837,19 @@
         `;
       } else if (activeTab === 'orders') {
         try {
-          const paged = await apiFetch(`/api/admin/scenarios/${scenario.scenarioId}/orders?page=${scenarioOrdersPage}&pageSize=${PAGE_SIZE}`);
+          const paged = await apiFetch(`/api/admin/strategies/${strategy.strategyId}/orders?page=${strategyOrdersPage}&pageSize=${PAGE_SIZE}`);
           const orders = paged?.items ?? [];
-          scenarioOrdersPage = paged?.page ?? 1;
+          strategyOrdersPage = paged?.page ?? 1;
           el.innerHTML = buildOrdersTableHtml(orders, false) +
-            buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goScenarioOrdersPage');
+            buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goStrategyOrdersPage');
         } catch (err) {
           el.innerHTML = `<div class="empty">${esc(getErrorMessage(err))}</div>`;
         }
       } else if (activeTab === 'trades') {
         try {
-          const paged = await apiFetch(`/api/admin/scenarios/${scenario.scenarioId}/trades?page=${scenarioTradesPage}&pageSize=${PAGE_SIZE}`);
+          const paged = await apiFetch(`/api/admin/strategies/${strategy.strategyId}/trades?page=${strategyTradesPage}&pageSize=${PAGE_SIZE}`);
           const trades = paged?.items ?? [];
-          scenarioTradesPage = paged?.page ?? 1;
+          strategyTradesPage = paged?.page ?? 1;
           if (!trades.length) { el.innerHTML = '<div class="empty">체결 이력이 없습니다.</div>'; return; }
           el.innerHTML = `
             <table>
@@ -859,7 +869,7 @@
                 `).join('')}
               </tbody>
             </table>
-            ${buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goScenarioTradesPage')}
+            ${buildPaginationHtml(paged?.page ?? 1, paged?.totalPages ?? 1, paged?.totalCount ?? 0, 'goStrategyTradesPage')}
           `;
         } catch (err) {
           el.innerHTML = `<div class="empty">${esc(getErrorMessage(err))}</div>`;
@@ -878,12 +888,12 @@
       }
     }
 
-    async function adjustBalance(scenarioId) {
+    async function adjustBalance(strategyId) {
       const currency = getInputValue('adjustCurrency');
       const amount = Number(getInputValue('adjustAmount'));
       if (!amount) return showToast('0이 아닌 금액을 입력해주세요.', true);
       try {
-        await apiFetch('/api/admin/wallets/adjust-balance', 'POST', { scenarioId, currency, amount });
+        await apiFetch('/api/admin/wallets/adjust-balance', 'POST', { strategyId, currency, amount });
         showToast(`${currency} 잔고를 조정했어.`);
         await loadUsers();
       } catch (err) {

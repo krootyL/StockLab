@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
+using StockLab.Client.Services.Kis;
 using StockLab.Common;
 using StockLab.Hubs;
 using StockLab.Middlewares;
@@ -16,11 +17,11 @@ builder.Logging.AddConsole(options => options.FormatterName = TradeColorConsoleF
 var logDirectory = Path.Combine(builder.Environment.ContentRootPath, "Logs");
 builder.Logging.AddProvider(new DailyFileLoggerProvider(logDirectory));
 
-// 1. 클라이언트 로컬 개인 KIS API 설정 바인딩 (공통 키 폴백 없음 — 본인 로컬 키 필수)
+// 1. 클라이언트 로컬 개인 KIS API 설정 바인딩 (기동 시에는 빈 상태로 시작하며, 로그인 확인 후에만 잠금 해제/적재)
 builder.Services.Configure<KisSettings>(options =>
 {
-    options.AppKey = Environment.GetEnvironmentVariable("KIS_OPENAPI_AppKey") ?? string.Empty;
-    options.AppSecret = Environment.GetEnvironmentVariable("KIS_OPENAPI_AppSecret") ?? string.Empty;
+    options.AppKey = string.Empty;
+    options.AppSecret = string.Empty;
     options.RestBaseUrl = "https://openapi.koreainvestment.com:9443";
     options.WebSocketKey = "ws://ops.koreainvestment.com:21000";
 });
@@ -36,51 +37,54 @@ builder.Services.AddTransient<KisRateLimitHandler>();
 builder.Services.AddHttpClient<KisSessionService>().AddHttpMessageHandler<KisRateLimitHandler>();
 builder.Services.AddHttpClient<KisRankingService>().AddHttpMessageHandler<KisRateLimitHandler>();
 builder.Services.AddHttpClient<KisQuoteService>().AddHttpMessageHandler<KisRateLimitHandler>();
+builder.Services.AddSingleton<KisProfileVaultService>();
 
 // 마스터 파일(.mst/.cod)을 로컬에 두지 않고, Server API에서 필요한 종목만 선택 조회해 TTL 캐싱
 builder.Services.AddHttpClient<RemoteStockMasterProvider>();
 builder.Services.AddSingleton<IStockMasterProvider>(sp => sp.GetRequiredService<RemoteStockMasterProvider>());
 builder.Services.AddSingleton<KisSocketService>();
 
-builder.Services.AddHostedService(sp => sp.GetRequiredService<KisSocketService>());
+if (!args.Contains("--kis-setup", StringComparer.OrdinalIgnoreCase))
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<KisSocketService>());
+}
 
 var app = builder.Build();
 
-// 3. 클라이언트 기동 시 로컬 KIS 키 검증 (키 미설정 시 접근 전면 제한)
+// 3. --kis-setup CLI 마법사 모드 (웹 서버 기동 시에는 로그인 전까지 키를 읽지 않고 잠금/둘러보기 상태로 시작)
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-var kisSettings = app.Services.GetRequiredService<IOptions<KisSettings>>().Value;
-var hasValidKisConfig = !string.IsNullOrWhiteSpace(kisSettings.AppKey) && !string.IsNullOrWhiteSpace(kisSettings.AppSecret);
+var vaultService = app.Services.GetRequiredService<KisProfileVaultService>();
 
-if (!hasValidKisConfig)
+if (args.Contains("--kis-setup", StringComparer.OrdinalIgnoreCase))
 {
-    logger.LogError("[클라이언트 KIS 접근 제한] 로컬 KIS_OPENAPI_AppKey 또는 KIS_OPENAPI_AppSecret이 설정되지 않았습니다. 개인 KIS 키 없이는 모든 접근이 제한됩니다.");
+    vaultService.UnlockFromVault("*");
+    await RunKisSetupCliAsync(vaultService);
+    return;
 }
-else
-{
-    logger.LogInformation("[클라이언트 KIS 설정 성공] AppKey({KeyLen}자리), AppSecret({SecretLen}자리) 로드 완료",
-        kisSettings.AppKey.Length, kisSettings.AppSecret.Length);
-}
+
+logger.LogInformation("[클라이언트 시작] 둘러보기 모드로 시작합니다. 로그인 시 로컬 금고 파일(kis-profiles.vault)의 KIS 키가 잠금 해제됩니다.");
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-// 로컬 KIS AppKey / AppSecret 미설정 시 모든 클라이언트 접근(UI, API, SignalR) 차단
+// 둘러보기 모드 개방: UI 정적 파일·스냅샷(/api/stocks/snapshot)·로컬 금고(/api/kis/*)는 허용하고,
+// 실제 KIS OpenAPI 호출이 필요한 엔드포인트만 키 미설정 시 403 KisConfigMissing 차단
 app.Use(async (context, next) =>
 {
-    var settings = context.RequestServices.GetRequiredService<IOptions<KisSettings>>().Value;
-    if (string.IsNullOrWhiteSpace(settings.AppKey) || string.IsNullOrWhiteSpace(settings.AppSecret))
+    var path = context.Request.Path;
+    var isKisEndpoint =
+        path.StartsWithSegments("/hubs") ||
+        path.StartsWithSegments("/api/stocks/popular") ||
+        (path.StartsWithSegments("/api/stocks") && path.Value != null && path.Value.EndsWith("/quote", StringComparison.OrdinalIgnoreCase));
+
+    if (isKisEndpoint)
     {
-        if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/hubs"))
+        var settings = context.RequestServices.GetRequiredService<IOptions<KisSettings>>().Value;
+        if (string.IsNullOrWhiteSpace(settings.AppKey) || string.IsNullOrWhiteSpace(settings.AppSecret))
         {
             throw new StockLabException(
                 ErrorCode.KisConfigMissing,
-                "로컬 KIS OpenAPI AppKey 또는 AppSecret이 설정되지 않아 접근이 제한됩니다.");
+                "로컬 KIS OpenAPI AppKey 또는 AppSecret이 연동되지 않아 실시간 시세/순위/호가 접근이 제한됩니다.");
         }
-
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        context.Response.ContentType = "text/plain; charset=utf-8";
-        await context.Response.WriteAsync(
-            "접근 제한 (403 Forbidden): 로컬 KIS_OPENAPI_AppKey 및 KIS_OPENAPI_AppSecret 환경변수가 설정되지 않았습니다. 개인 KIS OpenAPI 키 설정 후 다시 실행해 주세요.");
-        return;
     }
 
     await next();
@@ -142,13 +146,14 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-app.MapGet("/", () => Results.Redirect("/Auth/index.html"));
-app.MapGet("/auth", () => Results.Redirect("/Auth/index.html"));
+app.MapGet("/", () => Results.Redirect("/Dashboard/index.html"));
+app.MapGet("/auth", () => Results.Redirect("/Dashboard/index.html"));
+app.MapGet("/Auth/index.html", () => Results.Redirect("/Dashboard/index.html"));
 app.MapGet("/admin", () => Results.Redirect("/Admin/index.html"));
 app.MapGet("/user", () => Results.Redirect("/User/index.html"));
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // 클라이언트 정적 UI에 중앙 모의투자 API 서버 주소를 동적으로 주입 (http/https 프로토콜 일치 유지)
 app.MapGet("/client-config.js", (HttpContext ctx, IConfiguration config) =>
@@ -168,3 +173,76 @@ app.MapControllers();
 app.MapHub<StockQuoteHub>("/hubs/quote");
 
 app.Run();
+
+static async Task RunKisSetupCliAsync(KisProfileVaultService vault)
+{
+    Console.WriteLine("==============================================");
+    Console.WriteLine("  StockLab KIS API 프로필 금고 (DPAPI 암호화)");
+    Console.WriteLine("==============================================");
+
+    while (true)
+    {
+        var status = vault.GetStatus("*");
+        Console.WriteLine();
+        Console.WriteLine($"현재 상태: {(status.IsConnected ? $"연동됨 [{status.ActiveProfileName}] (출처: {status.Source})" : "미연동 (둘러보기 모드)")}");
+        Console.WriteLine($"저장된 프로필 ({status.Profiles.Count}개):");
+        for (int i = 0; i < status.Profiles.Count; i++)
+        {
+            var p = status.Profiles[i];
+            var mark = string.Equals(p.Id, status.ActiveProfileId, StringComparison.OrdinalIgnoreCase) ? "*" : " ";
+            var tok = p.HasValidToken ? $"토큰유효(~{p.ExpiresAtUtc?.ToLocalTime():MM-dd HH:mm})" : "토큰만료/미발급";
+            Console.WriteLine($"  [{i + 1}] {mark} {p.Name} - {tok}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("메뉴: [1] 프로필 추가  [2] 활성 프로필 전환  [3] 프로필 삭제  [0] 종료");
+        Console.Write("선택 > ");
+        var choice = Console.ReadLine()?.Trim();
+
+        if (choice == "0" || string.IsNullOrEmpty(choice)) break;
+
+        try
+        {
+            if (choice == "1")
+            {
+                Console.Write("프로필 이름 (예: 본계정): ");
+                var name = Console.ReadLine()?.Trim() ?? "기본 계정";
+                Console.Write("허용 계정 UID (쉼표 구분, 비우면 전체 허용): ");
+                var rawOwners = Console.ReadLine()?.Trim() ?? string.Empty;
+                var owners = rawOwners.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                Console.Write("KIS AppKey (36자리): ");
+                var appKey = Console.ReadLine()?.Trim() ?? string.Empty;
+                Console.Write("KIS AppSecret (180자리): ");
+                var appSecret = Console.ReadLine()?.Trim() ?? string.Empty;
+
+                Console.WriteLine("KIS 서버에서 1일 접근토큰 발급 검증 중...");
+                await vault.CreateAndActivateAsync("*", name, appKey, appSecret, owners);
+                Console.WriteLine($"완료! '{name}' 프로필이 DPAPI 금고에 암호화 저장 및 활성화되었습니다.");
+            }
+            else if (choice == "2")
+            {
+                Console.Write("전환할 번호: ");
+                if (int.TryParse(Console.ReadLine()?.Trim(), out var num) && num >= 1 && num <= status.Profiles.Count)
+                {
+                    var target = status.Profiles[num - 1];
+                    await vault.SelectProfileAsync(target.Id, "*");
+                    Console.WriteLine($"'{target.Name}' 프로필로 전환 완료.");
+                }
+            }
+            else if (choice == "3")
+            {
+                Console.Write("삭제할 번호: ");
+                if (int.TryParse(Console.ReadLine()?.Trim(), out var num) && num >= 1 && num <= status.Profiles.Count)
+                {
+                    var target = status.Profiles[num - 1];
+                    await vault.DeleteProfileAsync(target.Id, "*");
+                    Console.WriteLine($"'{target.Name}' 프로필이 삭제되었습니다.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[오류] {ex.Message}");
+        }
+    }
+}

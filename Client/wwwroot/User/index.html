@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockLab - 내 페이지</title>
+    <title>StockLab - 마이페이지</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <style>
         :root {
@@ -21,6 +21,10 @@
             --positive-bg: #fef2f2;
             --negative: #2563eb;
             --negative-bg: #eff6ff;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
             --danger: #dc2626;
             --danger-bg: #fef2f2;
             --badge-kospi: #3b82f6;
@@ -46,6 +50,10 @@
             --positive-bg: rgba(239, 68, 68, 0.14);
             --negative: #60a5fa;
             --negative-bg: rgba(59, 130, 246, 0.14);
+            --success: #4ade80;
+            --success-bg: rgba(34, 197, 94, 0.16);
+            --warning: #fbbf24;
+            --warning-bg: rgba(245, 158, 11, 0.16);
             --danger: #f87171;
             --danger-bg: rgba(239, 68, 68, 0.14);
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
@@ -67,6 +75,8 @@
             display: flex;
             flex-direction: column;
         }
+
+        .hidden { display: none !important; }
 
         /* Top Navigation */
         header {
@@ -128,7 +138,7 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             flex-wrap: wrap;
         }
 
@@ -138,8 +148,8 @@
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             border-radius: 8px;
-            padding: 0.5rem 0.85rem;
-            font-size: 0.85rem;
+            padding: 0.45rem 0.8rem;
+            font-size: 0.84rem;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
@@ -151,6 +161,7 @@
         .nav-link-btn:hover,
         .btn-outline:hover {
             border-color: var(--accent-primary);
+            color: var(--accent-primary);
         }
 
         .nav-link-admin {
@@ -158,8 +169,40 @@
             color: #dc2626;
         }
 
-        body.dark-mode .nav-link-admin {
-            color: #f87171;
+        .btn-primary {
+            background: var(--accent-primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.52rem 0.95rem;
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+        .btn-primary:disabled, .btn-outline:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .btn-danger-sm {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.25);
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-danger-sm:hover:not(:disabled) {
+            background: var(--danger);
+            color: #ffffff;
+        }
+
+        .btn-sm {
+            padding: 0.32rem 0.65rem;
+            font-size: 0.78rem;
+            border-radius: 6px;
         }
 
         .session-pill {
@@ -169,7 +212,7 @@
             background: var(--bg-elevated);
             border: 1px solid var(--border-color);
             border-radius: 9999px;
-            padding: 0.25rem 0.4rem 0.25rem 0.75rem;
+            padding: 0.25rem 0.65rem;
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
@@ -180,156 +223,187 @@
             color: var(--text-primary);
         }
 
-        .btn-extend {
+        .btn-extend, .btn-session-logout {
             border: 1px solid var(--border-color);
             background: var(--bg-surface);
-            color: var(--accent-primary);
+            color: var(--text-primary);
             border-radius: 9999px;
-            padding: 0.22rem 0.6rem;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .btn-extend:hover {
-            border-color: var(--accent-primary);
-        }
-
-        .btn-session-logout {
-            border: 1px solid var(--border-color);
-            background: var(--bg-surface);
-            color: var(--text-secondary);
-            border-radius: 9999px;
-            padding: 0.22rem 0.6rem;
+            padding: 0.18rem 0.55rem;
             font-size: 0.75rem;
             font-weight: 600;
             cursor: pointer;
         }
 
-        .btn-session-logout:hover {
-            border-color: #ef4444;
-            color: #ef4444;
-        }
+        .btn-extend:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+        .btn-session-logout:hover { border-color: var(--danger); color: var(--danger); }
 
-        .user-pill-link {
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        /* Sliding Emoji Theme Toggle */
+        /* Theme Switch */
         .theme-switch {
             position: relative;
+            width: 56px;
+            height: 28px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: space-between;
-            width: 62px;
-            height: 32px;
-            padding: 3px;
-            border-radius: 9999px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background-color 0.25s ease, border-color 0.25s ease;
-        }
-
-        .theme-switch:hover {
-            border-color: var(--accent-primary);
+            padding: 0 6px;
+            font-size: 0.8rem;
         }
 
         .theme-switch-thumb {
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: var(--bg-surface);
-            box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.dark-mode .theme-switch-thumb {
-            transform: translateX(30px);
-        }
-
-        .theme-switch-icon {
-            position: relative;
-            z-index: 1;
-            width: 24px;
-            text-align: center;
-            font-size: 0.85rem;
-            line-height: 1;
-            user-select: none;
-        }
-
-        .user-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--accent-light);
-            color: var(--accent-primary);
-            border: none;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
             border-radius: 9999px;
-            font-size: 0.82rem;
-            font-weight: 700;
+            background: var(--bg-surface);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s ease;
         }
 
-        .user-pill-link:hover {
-            opacity: 0.85;
-        }
-
-        .btn-primary {
-            background-color: var(--accent-primary);
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            padding: 0.55rem 1.05rem;
-            font-size: 0.88rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--accent-hover);
-        }
-
-        .btn-danger-ghost {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--danger);
-            border-radius: 6px;
-            padding: 0.35rem 0.65rem;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-danger-ghost:hover {
-            background-color: var(--danger-bg);
-            border-color: var(--danger);
-        }
+        body.dark-mode .theme-switch-thumb { transform: translateX(28px); }
+        .theme-switch-icon { position: relative; z-index: 1; line-height: 1; }
 
         /* Main Layout */
         main {
             max-width: 1280px;
             width: 100%;
             margin: 0 auto;
-            padding: 1.75rem 1.5rem 3rem;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1.25rem;
+            flex: 1;
         }
 
-        .card-section {
-            background-color: var(--bg-surface);
+        /* Profile Summary Banner */
+        .profile-banner {
+            background: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: 14px;
-            padding: 1.4rem 1.5rem;
+            padding: 1.25rem 1.5rem;
             box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-banner-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .avatar-circle {
+            width: 54px;
+            height: 54px;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .profile-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-name-lg {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+
+        .pill-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            background: var(--accent-light);
+            color: var(--accent-primary);
+        }
+
+        .pill-badge.kis-ok { background: var(--success-bg); color: var(--success); }
+        .pill-badge.kis-off { background: var(--danger-bg); color: var(--danger); }
+
+        .profile-meta-row {
+            margin-top: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .uid-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.35rem 0.65rem;
+            font-size: 0.82rem;
+        }
+
+        .uid-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Main Navigation Tabs */
+        .main-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .main-tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 0.55rem 1.05rem;
+            border-radius: 9px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .main-tab-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+        .main-tab-btn.active {
+            background: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        /* Card Section */
+        .card-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.35rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
         }
 
         .section-header {
@@ -338,305 +412,687 @@
             justify-content: space-between;
             gap: 1rem;
             flex-wrap: wrap;
-            margin-bottom: 1.15rem;
         }
 
         .section-title-group {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.55rem;
         }
 
         .section-title {
-            font-size: 1.1rem;
+            font-size: 1.08rem;
             font-weight: 700;
-            letter-spacing: -0.01em;
         }
 
         .section-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
             margin-top: 0.25rem;
+            font-size: 0.83rem;
+            color: var(--text-secondary);
         }
 
         .count-badge {
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             font-weight: 700;
-            background-color: var(--accent-light);
-            color: var(--accent-primary);
-            padding: 0.2rem 0.6rem;
+            padding: 0.16rem 0.5rem;
             border-radius: 9999px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
 
         .section-controls {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
-        .form-input,
-        .form-select {
-            background-color: var(--bg-primary);
-            border: 1.5px solid var(--border-color);
+        .form-select, .form-input {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
             color: var(--text-primary);
             border-radius: 8px;
-            padding: 0.55rem 0.85rem;
-            font-size: 0.9rem;
+            padding: 0.48rem 0.75rem;
+            font-size: 0.86rem;
+        }
+
+        .form-input:focus, .form-select:focus {
             outline: none;
-        }
-
-        .form-input:focus,
-        .form-select:focus {
             border-color: var(--accent-primary);
+            background: var(--bg-surface);
         }
 
-        /* Guest Auth Banner */
-        .auth-banner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .auth-form-row {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            flex-wrap: wrap;
-        }
-
-        .status-text {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-        }
-
-        /* Wallet Cards Grid */
-        .wallet-grid {
+        /* Grids & Cards */
+        .two-col-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.25rem;
         }
 
-        .wallet-card {
-            background-color: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.15rem 1.25rem;
-            display: flex;
-            flex-direction: column;
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.85rem;
         }
 
-        .wallet-card-top {
+        .kpi-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.95rem 1.05rem;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            gap: 0.35rem;
         }
 
-        .currency-badge {
-            font-size: 0.8rem;
-            font-weight: 700;
-            padding: 0.25rem 0.65rem;
-            border-radius: 9999px;
-            background-color: var(--accent-light);
-            color: var(--accent-primary);
-        }
+        .kpi-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
+        .kpi-value { font-size: 1.22rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .kpi-sub { font-size: 0.76rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
-        .wallet-id-text {
-            font-size: 0.75rem;
+        .val-up { color: var(--positive); }
+        .val-down { color: var(--negative); }
+
+        /* Account Forms */
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-label { font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); }
+        .pw-input-wrap { position: relative; display: flex; align-items: center; }
+        .pw-input-wrap .form-input { width: 100%; padding-right: 2.5rem; }
+        .pw-eye-btn {
+            position: absolute;
+            right: 0.55rem;
+            background: transparent;
+            border: none;
             color: var(--text-muted);
-            font-family: monospace;
+            cursor: pointer;
+            display: inline-flex;
+            padding: 0.2rem;
         }
+        .pw-eye-btn:hover { color: var(--text-primary); }
 
-        .wallet-total {
-            font-size: 1.45rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .wallet-breakdown {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.6rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .wallet-metric {
+        .pw-rules {
             display: flex;
             flex-direction: column;
             gap: 0.2rem;
+            font-size: 0.77rem;
+            color: var(--text-muted);
+            background: var(--bg-elevated);
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+        }
+        .pw-rule.ok { color: var(--success); font-weight: 600; }
+        .pw-rule.bad { color: var(--danger); }
+
+        .status-text { font-size: 0.82rem; min-height: 1.15rem; font-weight: 600; }
+        .status-text.ok { color: var(--success); }
+        .status-text.err { color: var(--danger); }
+
+        /* Tables */
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
         }
 
-        .wallet-metric-label {
-            font-size: 0.75rem;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 0.72rem 0.85rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--bg-elevated);
             color: var(--text-secondary);
-        }
-
-        .wallet-metric-value {
-            font-size: 0.92rem;
             font-weight: 700;
-            font-variant-numeric: tabular-nums;
+            font-size: 0.78rem;
         }
 
-        /* Watchlist Search Bar */
-        .watchlist-search-wrapper {
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--bg-elevated); }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.16rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.73rem;
+            font-weight: 700;
+        }
+        .badge-buy { background: var(--positive-bg); color: var(--positive); }
+        .badge-sell { background: var(--negative-bg); color: var(--negative); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning); }
+        .badge-filled { background: var(--success-bg); color: var(--success); }
+        .badge-cancelled { background: var(--bg-elevated); color: var(--text-muted); }
+
+        /* Watchlist Search */
+        .watchlist-search-box {
             position: relative;
-            margin-bottom: 1.15rem;
-        }
-
-        .watchlist-search-row {
             display: flex;
-            gap: 0.6rem;
-        }
-
-        .watchlist-search-row .form-input {
-            flex: 1;
+            gap: 0.5rem;
+            align-items: center;
         }
 
         .search-dropdown {
             position: absolute;
-            top: calc(100% + 6px);
+            top: calc(100% + 4px);
             left: 0;
             right: 0;
-            background-color: var(--bg-surface);
+            background: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: 10px;
             box-shadow: var(--shadow-md);
             max-height: 260px;
             overflow-y: auto;
             z-index: 30;
-            display: none;
         }
 
-        .search-dropdown.open {
-            display: block;
-        }
-
-        .search-dropdown-item {
-            padding: 0.7rem 1rem;
+        .search-result-row {
+            padding: 0.6rem 0.85rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 0.75rem;
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
+        }
+        .search-result-row:last-child { border-bottom: none; }
+        .search-result-row:hover { background: var(--bg-elevated); }
+
+        /* Sub Tabs inside Trading History */
+        .sub-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
         }
 
-        .search-dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .search-dropdown-item:hover {
-            background-color: var(--bg-elevated);
-        }
-
-        /* Watchlist Table */
-        .table-scroll {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            padding: 0.75rem 0.9rem;
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
-            white-space: nowrap;
-            background-color: var(--bg-elevated);
-        }
-
-        td {
-            padding: 0.85rem 0.9rem;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            text-align: center;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-        }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        tbody tr:hover {
-            background-color: var(--bg-elevated);
-        }
-
-        .stock-code-cell {
-            font-family: monospace;
-            font-weight: 700;
-        }
-
-        .stock-name-cell {
-            text-align: left;
-            font-weight: 600;
-        }
-
-        .price-up {
-            color: var(--positive);
-            font-weight: 700;
-        }
-
-        .price-down {
-            color: var(--negative);
-            font-weight: 700;
-        }
-
-        .price-flat {
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        .cache-pill {
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 0.2rem 0.55rem;
-            border-radius: 9999px;
-            background-color: var(--bg-elevated);
-            color: var(--text-secondary);
+        .sub-tab-btn {
+            background: var(--bg-elevated);
             border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.38rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
         }
+
+        .sub-tab-btn.active {
+            background: var(--accent-light);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        /* Standard Paging Bar */
+        .table-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding-top: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btns {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .page-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 30px;
+            height: 30px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 7px;
+            padding: 0 0.45rem;
+            cursor: pointer;
+        }
+
+        .page-nav-btn:hover:not(:disabled) {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .page-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .page-jump-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin: 0 0.25rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .page-input {
+            width: 52px;
+            padding: 0.28rem 0.4rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        /* Strategy Cards */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1rem;
+        }
+
+        .strategy-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.05rem 1.15rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .strategy-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.65rem;
+        }
+
+        .strategy-name { font-size: 1.02rem; font-weight: 800; }
+        .strategy-meta { font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+            font-size: 0.82rem;
+        }
+
+        .strategy-metric-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem 0.65rem;
+        }
+
+        .strategy-metric-label { font-size: 0.72rem; color: var(--text-muted); }
+        .strategy-metric-val { font-weight: 700; margin-top: 0.12rem; font-variant-numeric: tabular-nums; }
 
         .empty-state {
             text-align: center;
-            padding: 2.25rem 1rem;
+            padding: 1.5rem 1rem;
             color: var(--text-muted);
+            font-size: 0.86rem;
+        }
+
+        .clickable-stock-row {
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+        }
+
+        .clickable-stock-row:hover td {
+            background-color: var(--bg-elevated);
+        }
+
+        /* Real-Time Quote Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-backdrop.open .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 1.15rem 1.4rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .modal-title-area {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .modal-stock-name {
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .modal-sub-info {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .badge-market {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.12rem 0.45rem;
+            border-radius: 5px;
+            background: rgba(37, 99, 235, 0.12);
+            color: var(--accent-primary);
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.35rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1;
+            padding: 0.2rem;
+        }
+
+        .modal-close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-watchlist-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.32rem 0.68rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-watchlist-toggle:hover:not(:disabled) {
+            border-color: #f59e0b;
+            color: #d97706;
+        }
+
+        .btn-watchlist-toggle.active {
+            background: rgba(245, 158, 11, 0.14);
+            border-color: #f59e0b;
+            color: #d97706;
+        }
+
+        .btn-watchlist-toggle:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal-body {
+            padding: 1.35rem 1.4rem;
+        }
+
+        .modal-price-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .modal-current-price {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .modal-change-badge {
             font-size: 0.9rem;
+            font-weight: 700;
+            padding: 0.32rem 0.7rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
         }
 
-        .hidden {
-            display: none !important;
+        .badge-up {
+            background-color: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
         }
 
-        @media (max-width: 768px) {
-            .nav-container {
-                padding: 0.75rem 1rem;
-            }
+        .badge-down {
+            background-color: rgba(59, 130, 246, 0.12);
+            color: #3b82f6;
+        }
 
-            main {
-                padding: 1.25rem 1rem 2.5rem;
-            }
+        .badge-flat {
+            background-color: var(--bg-elevated);
+            color: var(--text-muted);
+        }
 
-            .card-section {
-                padding: 1.1rem 1rem;
-            }
+        .orderbook-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: var(--bg-surface);
+        }
+
+        .orderbook-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .orderbook-list {
+            max-height: 210px;
+            overflow-y: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.84rem;
+        }
+
+        .orderbook-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            padding: 0.35rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .orderbook-row:last-child {
+            border-bottom: none;
+        }
+
+        .orderbook-ask {
+            background-color: rgba(59, 130, 246, 0.06);
+            color: #3b82f6;
+        }
+
+        .orderbook-bid {
+            background-color: rgba(239, 68, 68, 0.06);
+            color: #ef4444;
+        }
+
+        .orderbook-empty {
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .rest-quote-section {
+            margin-top: 1.1rem;
+            padding-top: 1.1rem;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .rest-quote-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        #btnRefreshQuote {
+            position: relative;
+        }
+
+        #btnRefreshQuote:disabled {
+            background-color: #cbd5e1 !important;
+            border-color: #cbd5e1 !important;
+            color: #64748b !important;
+            cursor: not-allowed !important;
+            opacity: 0.75;
+        }
+
+        body.dark-mode #btnRefreshQuote:disabled {
+            background-color: #334155 !important;
+            border-color: #334155 !important;
+            color: #94a3b8 !important;
+        }
+
+        #btnRefreshQuote[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            background-color: #1e293b;
+            color: #f8fafc;
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 0.3rem 0.55rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .quote-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.65rem;
+        }
+
+        .quote-item {
+            background-color: var(--bg-elevated);
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.18rem;
+        }
+
+        .quote-item-label {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+        }
+
+        .quote-item-value {
+            font-size: 0.92rem;
+            font-weight: 700;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .modal-footer {
+            padding: 0.95rem 1.4rem;
+            background-color: var(--bg-elevated);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-trade-buy {
+            flex: 1;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+        }
+
+        .btn-trade-buy:hover { opacity: 0.9; }
+
+        .btn-trade-sell {
+            flex: 1;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+        }
+
+        .btn-trade-sell:hover { opacity: 0.9; }
+
+        @media (max-width: 960px) {
+            .two-col-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 600px) {
+            main { padding: 1rem; }
+            .kpi-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <!-- Top Header -->
     <header>
         <div class="nav-container">
             <a href="/Dashboard/index.html" class="logo-area">
@@ -645,9 +1101,10 @@
                 <span class="logo-badge">My Page</span>
             </a>
             <div class="nav-actions">
+                <a href="/Dashboard/index.html" class="nav-link-btn">대시보드</a>
                 <a href="/Admin/index.html" id="adminPageLink" class="nav-link-btn nav-link-admin hidden">관리자</a>
                 <div class="session-pill hidden" id="userSessionArea">
-                    <a href="/User/index.html" class="user-pill user-pill-link" id="userNicknameLabel" style="padding: 0.2rem 0.6rem;">-</a>
+                    <span id="userNicknameLabel" style="font-weight: 700; color: var(--text-primary);">-</span>
                     <span>세션 <span class="session-timer" id="navSessionTimer">30:00</span></span>
                     <button type="button" class="btn-extend" id="extendSessionBtn">연장</button>
                     <button type="button" class="btn-session-logout" id="logoutBtn">로그아웃</button>
@@ -661,117 +1118,459 @@
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main>
-        <!-- 1. Wallet List Section (내 지갑 리스트) -->
-        <section class="card-section" id="walletSection">
-            <div class="section-header">
+    <main id="myPageMain" class="hidden">
+        <!-- 상단 프로필 요약 배너 -->
+        <section class="profile-banner">
+            <div class="profile-banner-left">
+                <div class="avatar-circle" id="bannerAvatar">U</div>
                 <div>
-                    <div class="section-title-group">
-                        <h2 class="section-title">내 지갑 리스트</h2>
-                        <span class="count-badge" id="walletCountBadge">0개</span>
+                    <div class="profile-title-row">
+                        <span class="profile-name-lg" id="bannerNickname">-</span>
+                        <span class="pill-badge" id="bannerRoleBadge">일반 회원</span>
+                        <span class="pill-badge kis-off" id="bannerKisBadge">KIS 미연동</span>
                     </div>
-                    <p class="section-subtitle">선택한 시나리오의 통화별 주문 가능 금액과 주문 예약금을 확인합니다.</p>
-                </div>
-                <div class="section-controls">
-                    <select class="form-select" id="scenarioSelect" aria-label="시나리오 선택">
-                        <option value="">시나리오 선택</option>
-                    </select>
-                    <button type="button" class="btn-outline" id="refreshWalletBtn">새로고침</button>
+                    <div class="profile-meta-row">
+                        <span>아이디: <strong id="bannerLoginId">-</strong></span>
+                        <span>가입일: <strong id="bannerJoinedAt">-</strong></span>
+                        <span>보유 전략: <strong id="bannerStrategyCount">0개</strong></span>
+                    </div>
                 </div>
             </div>
-
-            <div class="wallet-grid" id="walletGrid">
-                <!--
-                지갑 카드 템플릿 예시:
-                <div class="wallet-card">
-                    <div class="wallet-card-top">
-                        <span class="currency-badge">KRW</span>
-                        <span class="wallet-id-text">#1</span>
-                    </div>
-                    <div class="wallet-total">1,000,000 KRW</div>
-                    <div class="wallet-breakdown">
-                        <div class="wallet-metric">
-                            <span class="wallet-metric-label">주문 가능 (Available)</span>
-                            <span class="wallet-metric-value">1,000,000</span>
-                        </div>
-                        <div class="wallet-metric">
-                            <span class="wallet-metric-label">주문 예약 (Pending)</span>
-                            <span class="wallet-metric-value">0</span>
-                        </div>
-                    </div>
-                </div>
-                -->
-            </div>
-
-            <div class="empty-state" id="walletEmptyState">
-                로그인 후 보유 중인 지갑 목록이 표시됩니다.
+            <div class="uid-box">
+                <span style="color: var(--text-secondary); font-weight: 600;">내 UID</span>
+                <span class="uid-mono" id="bannerUid">-</span>
+                <button type="button" class="btn-outline btn-sm" id="copyUidBtn">복사</button>
             </div>
         </section>
 
-        <!-- 3. Watchlist Section (내 관심종목 리스트) -->
-        <section class="card-section" id="watchlistSection">
-            <div class="section-header">
-                <div>
-                    <div class="section-title-group">
-                        <h2 class="section-title">내 관심종목</h2>
-                        <span class="count-badge" id="watchlistCountBadge">0개</span>
-                    </div>
-                    <p class="section-subtitle">계정에 저장된 관심종목의 시세 정보를 서버 인메모리 기준으로 즉시 표시합니다.</p>
-                </div>
-                <div class="section-controls">
-                    <button type="button" class="btn-outline" id="refreshWatchlistBtn">새로고침</button>
-                </div>
-            </div>
+        <!-- 대분류 탭 -->
+        <nav class="main-tabs" aria-label="마이페이지 섹션">
+            <button type="button" class="main-tab-btn active" data-tab="assets">자산 · 거래 관리</button>
+            <button type="button" class="main-tab-btn" data-tab="strategies">투자 전략 관리</button>
+            <button type="button" class="main-tab-btn" data-tab="account">내 정보 관리</button>
+        </nav>
 
-            <!-- 관심종목 추가 검색바 -->
-            <div class="watchlist-search-wrapper">
-                <div class="watchlist-search-row">
-                    <input
-                        type="text"
-                        class="form-input"
-                        id="watchlistSearchInput"
-                        placeholder="추가할 종목명 또는 단축코드를 입력하세요 (예: 삼성전자, AAPL)..."
-                        autocomplete="off">
+        <!-- TAB 1: 자산 · 거래 관리 -->
+        <div id="tab-assets" class="tab-panel" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- 1-0. 계정 통합 예수금 & 전략 자금 이체 -->
+            <section class="card-section">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title-group">
+                            <h2 class="section-title">계정 통합 예수금 & 전략 자금 이체</h2>
+                        </div>
+                        <p class="section-subtitle">계정 통합 예수금을 직접 입출금하고, 원하는 투자 전략과 통합 예수금 간에 자금을 자유롭게 이체합니다.</p>
+                    </div>
+                </div>
+
+                <div class="two-col-grid">
+                    <!-- 통합 예수금 현황 및 입출금 -->
+                    <div style="display: flex; flex-direction: column; gap: 0.85rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-tertiary);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <span style="font-size: 0.86rem; font-weight: 800; color: var(--text-primary);">통합 예수금 지갑 (미배분 잔액)</span>
+                            <span style="font-size: 0.74rem; color: var(--text-muted);">초기 기본값 0원 · 자유 입출금</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem;">
+                            <div class="kpi-box" style="background: var(--bg-secondary);">
+                                <span class="kpi-label">통합 KRW 잔액</span>
+                                <span class="kpi-value" id="accountKrwBalance" style="font-size: 1.05rem;">₩0</span>
+                            </div>
+                            <div class="kpi-box" style="background: var(--bg-secondary);">
+                                <span class="kpi-label">통합 USD 잔액</span>
+                                <span class="kpi-value" id="accountUsdBalance" style="font-size: 1.05rem;">$0.00</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center;">
+                            <select class="form-select" id="accountTxCurrencySelect" aria-label="입출금 통화 선택" style="width: 110px;">
+                                <option value="KRW">KRW (원)</option>
+                                <option value="USD">USD ($)</option>
+                            </select>
+                            <input type="number" id="accountTxAmountInput" class="form-input" min="0" step="any" placeholder="입출금 금액 입력" autocomplete="off" data-lpignore="true" style="flex: 1; min-width: 140px;">
+                            <button type="button" class="btn-primary btn-sm" id="accountDepositBtn">+ 입금</button>
+                            <button type="button" class="btn-outline btn-sm" id="accountWithdrawBtn">- 출금</button>
+                        </div>
+                    </div>
+
+                    <!-- 통합 예수금 <-> 투자 전략 양방향 이체 -->
+                    <div style="display: flex; flex-direction: column; gap: 0.85rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-tertiary);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <span style="font-size: 0.86rem; font-weight: 800; color: var(--text-primary);">통합 예수금 ↔ 투자 전략 이체</span>
+                            <span style="font-size: 0.74rem; color: var(--text-muted);" id="transferAvailableHint">이체 가능 금액: -</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem;">
+                            <div class="form-group">
+                                <label for="transferStrategySelect" class="form-label">대상 투자 전략</label>
+                                <select class="form-select" id="transferStrategySelect"></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="transferDirectionSelect" class="form-label">이체 방향</label>
+                                <select class="form-select" id="transferDirectionSelect">
+                                    <option value="ToStrategy">통합 예수금 → 투자 전략</option>
+                                    <option value="ToAccount">투자 전략 → 통합 예수금</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center;">
+                            <select class="form-select" id="transferCurrencySelect" aria-label="이체 통화 선택" style="width: 110px;">
+                                <option value="KRW">KRW (원)</option>
+                                <option value="USD">USD ($)</option>
+                            </select>
+                            <input type="number" id="transferAmountInput" class="form-input" min="0" step="any" placeholder="이체할 금액 입력" autocomplete="off" data-lpignore="true" style="flex: 1; min-width: 130px;">
+                            <button type="button" class="btn-outline btn-sm" id="transferMaxBtn">전액</button>
+                            <button type="button" class="btn-primary btn-sm" id="transferSubmitBtn">이체 실행</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-text" id="walletTransferStatusMsg"></div>
+            </section>
+
+            <!-- 1-1. 예수금 및 자산정보 -->
+            <section class="card-section">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title-group">
+                            <h2 class="section-title">예수금 및 자산 현황</h2>
+                        </div>
+                        <p class="section-subtitle">투자 전략별 예수금·평가자산·누적 실현손익 및 보유종목을 확인합니다.</p>
+                    </div>
+                    <div class="section-controls">
+                        <select class="form-select" id="assetStrategySelect" aria-label="자산 조회 전략 선택">
+                            <option value="all">전체 투자 전략 합산</option>
+                        </select>
+                        <select class="form-select" id="assetCurrencySelect" aria-label="표시 통화 선택">
+                            <option value="KRW">KRW (원)</option>
+                            <option value="USD">USD ($)</option>
+                        </select>
+                        <button type="button" class="btn-outline" id="refreshAssetsBtn">새로고침</button>
+                    </div>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <span class="kpi-label">총 예수금 (가용 + 예약)</span>
+                        <span class="kpi-value" id="kpiTotalCash">-</span>
+                        <span class="kpi-sub" id="kpiCashBreakdown">가능 - / 예약 -</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">총 평가자산 (현금 + 주식)</span>
+                        <span class="kpi-value" id="kpiEvalTotal">-</span>
+                        <span class="kpi-sub" id="kpiHoldingsValue">보유 평가액 -</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">평가손익 / 수익률</span>
+                        <span class="kpi-value" id="kpiUnrealizedPnl">-</span>
+                        <span class="kpi-sub" id="kpiUnrealizedRate">-</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">누적 실현손익</span>
+                        <span class="kpi-value" id="kpiRealizedPnl">-</span>
+                        <span class="kpi-sub" id="kpiRealizedSub">선택 통화 기준 확정 손익</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-title-group" style="margin-bottom: 0.6rem;">
+                        <h3 style="font-size: 0.94rem; font-weight: 700;">보유종목 상세</h3>
+                        <span class="count-badge" id="holdingsCountBadge">0개</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>투자 전략</th>
+                                    <th>종목</th>
+                                    <th class="num">보유 수량</th>
+                                    <th class="num">평균 매입가</th>
+                                    <th class="num">현재가 / 기준가</th>
+                                    <th class="num">평가금액</th>
+                                    <th class="num">평가손익 (수익률)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holdingsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state hidden" id="holdingsEmptyState">보유 중인 종목이 없습니다.</div>
+                </div>
+            </section>
+
+            <!-- 1-2. 관심종목 관리 -->
+            <section class="card-section">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title-group">
+                            <h2 class="section-title">관심종목 정보</h2>
+                            <span class="count-badge" id="watchlistCountBadge">0개</span>
+                        </div>
+                        <p class="section-subtitle">계정에 저장된 관심종목의 시세를 확인합니다. KIS API 연동 시 실시간 현재가·등락을 조회합니다.</p>
+                    </div>
+                    <div class="section-controls">
+                        <button type="button" class="btn-outline" id="refreshWatchlistBtn">시세 새로고침</button>
+                    </div>
+                </div>
+
+                <div class="watchlist-search-box">
+                    <input type="text" id="watchlistSearchInput" class="form-input" style="flex: 1;" placeholder="종목명 또는 단축코드 검색 (예: 삼성전자, 005930, AAPL)" autocomplete="off" data-lpignore="true">
                     <button type="button" class="btn-primary" id="watchlistSearchBtn">검색</button>
+                    <div class="search-dropdown hidden" id="watchlistSearchDropdown"></div>
                 </div>
-                <div class="search-dropdown" id="watchlistSearchDropdown">
-                    <!-- 검색 결과 항목 동적 렌더링 영역 -->
+                <div class="status-text" id="watchlistStatusMsg"></div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>종목코드</th>
+                                <th>종목명</th>
+                                <th>시장 / 거래소</th>
+                                <th class="num">현재가 / 기준가</th>
+                                <th class="num">전일대비</th>
+                                <th>시세 출처</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="watchlistTableBody"></tbody>
+                    </table>
                 </div>
-            </div>
+                <div class="empty-state hidden" id="watchlistEmptyState">등록된 관심종목이 없습니다. 위 검색창에서 종목을 추가해 보세요.</div>
+            </section>
 
-            <!-- 관심종목 목록 테이블 -->
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 110px;">심볼 / 코드</th>
-                            <th style="min-width: 180px; text-align: left;">종목명</th>
-                            <th style="width: 120px;">시장 / 거래소</th>
-                            <th style="width: 140px;">현재가 / 기준가</th>
-                            <th style="width: 150px;">전일대비</th>
-                            <th style="width: 110px;">시세 출처</th>
-                            <th style="width: 90px;">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="watchlistTableBody">
-                        <!-- 관심종목 행 동적 렌더링 영역 -->
-                    </tbody>
-                </table>
-            </div>
+            <!-- 1-3. 전체 거래내역 (진행중 vs 완료 내역 분리) -->
+            <section class="card-section">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title-group">
+                            <h2 class="section-title">전체 거래내역</h2>
+                            <span class="count-badge" id="historyCountBadge">총 0건</span>
+                        </div>
+                        <p class="section-subtitle">진행중인 주문(취소 가능)과 완료된 주문·체결 내역을 구분해 조회합니다.</p>
+                    </div>
+                    <div class="section-controls">
+                        <select class="form-select" id="historyStrategySelect" aria-label="거래내역 전략 필터">
+                            <option value="">전체 투자 전략</option>
+                        </select>
+                        <button type="button" class="btn-outline" id="refreshHistoryBtn">새로고침</button>
+                    </div>
+                </div>
 
-            <div class="empty-state" id="watchlistEmptyState">
-                등록된 관심종목이 없습니다. 위 검색창에서 종목을 추가해보세요.
+                <div class="sub-tabs">
+                    <button type="button" class="sub-tab-btn active" data-history-scope="active">진행중인 거래 (취소 가능)</button>
+                    <button type="button" class="sub-tab-btn" data-history-scope="completed">완료된 주문 내역</button>
+                    <button type="button" class="sub-tab-btn" data-history-scope="trades">체결 이력</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead id="historyTableHead"></thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="empty-state hidden" id="historyEmptyState">표시할 거래내역이 없습니다.</div>
+
+                <div class="table-pagination hidden" id="historyPagination">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;" id="historyResultCountText">총 0건</span>
+                    <div class="pagination-btns">
+                        <button type="button" class="page-nav-btn" id="historyFirstBtn" title="첫 페이지" aria-label="첫 페이지">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="6" y2="18"/><path d="m17 18-6-6 6-6"/></svg>
+                        </button>
+                        <button type="button" class="page-nav-btn" id="historyPrevBtn" title="이전 페이지" aria-label="이전 페이지">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <div class="page-jump-wrap">
+                            <input type="number" inputmode="numeric" class="page-input" id="historyPageInput" min="1" value="1" autocomplete="off" data-lpignore="true" aria-label="현재 페이지">
+                            <span id="historyPageTotalLabel">/ 1 페이지</span>
+                        </div>
+                        <button type="button" class="page-nav-btn" id="historyNextBtn" title="다음 페이지" aria-label="다음 페이지">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                        <button type="button" class="page-nav-btn" id="historyLastBtn" title="마지막 페이지" aria-label="마지막 페이지">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 18 6-6-6-6"/><line x1="18" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB 2: 투자 전략 관리 -->
+        <div id="tab-strategies" class="tab-panel hidden" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <section class="card-section">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title-group">
+                            <h2 class="section-title">투자 전략 관리</h2>
+                            <span class="count-badge" id="strategyTabCountBadge">0개</span>
+                        </div>
+                        <p class="section-subtitle">투자 전략별 자산·손익 요약을 확인하고 새 전략을 추가하거나 이름을 수정할 수 있습니다. (계정당 최대 10개)</p>
+                    </div>
+                    <form id="createStrategyForm" class="section-controls" autocomplete="off">
+                        <input type="text" id="newStrategyNameInput" class="form-input" maxlength="50" placeholder="새 투자 전략 이름 입력" autocomplete="off" data-lpignore="true" required>
+                        <button type="submit" class="btn-primary" id="createStrategyBtn">+ 전략 추가</button>
+                    </form>
+                </div>
+                <div class="status-text" id="strategyStatusMsg"></div>
+                <div class="strategy-grid" id="strategyGrid"></div>
+                <div class="empty-state hidden" id="strategyEmptyState">등록된 투자 전략이 없습니다.</div>
+            </section>
+        </div>
+
+        <!-- TAB 3: 내 정보 관리 -->
+        <div id="tab-account" class="tab-panel hidden">
+            <div class="two-col-grid">
+                <!-- 닉네임 관리 -->
+                <section class="card-section">
+                    <div>
+                        <h2 class="section-title">닉네임 관리</h2>
+                        <p class="section-subtitle">대시보드와 마이페이지에 표시되는 내 닉네임을 변경합니다.</p>
+                    </div>
+                    <form id="nicknameForm" style="display: flex; flex-direction: column; gap: 0.9rem;" autocomplete="off">
+                        <div class="form-group">
+                            <label for="editNicknameInput" class="form-label">닉네임 (1~50자)</label>
+                            <input type="text" id="editNicknameInput" class="form-input" maxlength="50" placeholder="새 닉네임 입력" autocomplete="off" data-lpignore="true" required>
+                        </div>
+                        <div class="status-text" id="nicknameStatusMsg"></div>
+                        <button type="submit" class="btn-primary" id="saveNicknameBtn">닉네임 저장</button>
+                    </form>
+                </section>
+
+                <!-- 비밀번호 변경 -->
+                <section class="card-section">
+                    <div>
+                        <h2 class="section-title">비밀번호 변경</h2>
+                        <p class="section-subtitle">현재 비밀번호 확인 후 새 비밀번호로 안전하게 변경합니다.</p>
+                    </div>
+                    <form id="passwordForm" style="display: flex; flex-direction: column; gap: 0.85rem;" autocomplete="off">
+                        <div class="form-group">
+                            <label for="currentPwInput" class="form-label">현재 비밀번호</label>
+                            <div class="pw-input-wrap">
+                                <input type="password" id="currentPwInput" class="form-input" placeholder="현재 비밀번호 입력" autocomplete="current-password" required>
+                                <button type="button" class="pw-eye-btn" data-toggle-pw="currentPwInput" aria-label="비밀번호 보기">👁</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPwInput" class="form-label">새 비밀번호</label>
+                            <div class="pw-input-wrap">
+                                <input type="password" id="newPwInput" class="form-input" maxlength="64" placeholder="새 비밀번호 입력" autocomplete="new-password" required>
+                                <button type="button" class="pw-eye-btn" data-toggle-pw="newPwInput" aria-label="비밀번호 보기">👁</button>
+                            </div>
+                            <div class="pw-rules">
+                                <span id="pwRuleLen" class="pw-rule">• 8~64자 이내</span>
+                                <span id="pwRuleMix" class="pw-rule">• 영문, 숫자, 특수문자 각각 1자 이상 포함</span>
+                                <span id="pwRuleSpace" class="pw-rule">• 공백 사용 불가</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPwInput" class="form-label">새 비밀번호 확인</label>
+                            <div class="pw-input-wrap">
+                                <input type="password" id="confirmPwInput" class="form-input" maxlength="64" placeholder="새 비밀번호 다시 입력" autocomplete="new-password" required>
+                                <button type="button" class="pw-eye-btn" data-toggle-pw="confirmPwInput" aria-label="비밀번호 보기">👁</button>
+                            </div>
+                        </div>
+                        <div class="status-text" id="passwordStatusMsg"></div>
+                        <button type="submit" class="btn-primary" id="savePasswordBtn">비밀번호 변경</button>
+                    </form>
+                </section>
             </div>
-        </section>
+        </div>
     </main>
 
+    <!-- 실시간 종목 시세 · 호가 상세 모달 -->
+    <div class="modal-backdrop" id="quoteModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <div class="modal-stock-name" id="modalStockName">-</div>
+                    <div class="modal-sub-info">
+                        <span id="modalStockCode" style="font-family: monospace; font-weight: 700;">-</span>
+                        <span>•</span>
+                        <span class="badge-market" id="modalMarketBadge">KOSPI</span>
+                        <span id="modalExchange">KRX</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
+                    <button type="button" class="btn-watchlist-toggle" id="btnToggleWatchlist" title="관심종목 등록/해제">☆ 관심종목 추가</button>
+                    <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="닫기">✕</button>
+                </div>
+            </div>
+            <div id="modalWatchlistNotice" class="hidden" style="padding: 0.45rem 1.4rem; font-size: 0.78rem; font-weight: 600; border-bottom: 1px solid var(--border-color); background: var(--bg-elevated);"></div>
+            <div class="modal-body">
+                <div class="modal-price-area">
+                    <div style="min-width: 0; flex: 1;">
+                        <div class="modal-current-price" id="modalCurrentPrice">-</div>
+                    </div>
+                    <div class="modal-change-badge badge-flat" id="modalChangeBadge" style="flex-shrink: 0; white-space: nowrap;">
+                        <span id="modalPriceChange">-</span>
+                        <span id="modalChangeRate">(-%)</span>
+                    </div>
+                </div>
+
+                <!-- Real-Time Order Book (WebSocket / SignalR) -->
+                <div class="orderbook-section">
+                    <div class="orderbook-header">
+                        <span>실시간 호가 (Order Book)</span>
+                        <span id="orderBookStatus">대기 중</span>
+                    </div>
+                    <div class="orderbook-list" id="orderBookList">
+                        <div class="orderbook-empty">실시간 호가 수신 대기 중...</div>
+                    </div>
+                </div>
+
+                <!-- REST Snapshot Quote Section -->
+                <div class="rest-quote-section">
+                    <div class="rest-quote-toolbar">
+                        <button type="button" id="btnRefreshQuote" style="flex-shrink:0; white-space:nowrap; padding:0.22rem 0.55rem; font-size:0.75rem; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-elevated); color:var(--text-primary); cursor:pointer;">🔄 갱신</button>
+                        <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="modalUpdatedAt">기준 시각 : --:--:--</span>
+                    </div>
+
+                    <div class="quote-grid">
+                        <div class="quote-item">
+                            <span class="quote-item-label">전일 종가</span>
+                            <span class="quote-item-value" id="modalBasePrice">-</span>
+                        </div>
+                        <div class="quote-item">
+                            <span class="quote-item-label">장 시작가</span>
+                            <span class="quote-item-value" id="modalOpenPrice">-</span>
+                        </div>
+                        <div class="quote-item">
+                            <span class="quote-item-label">당일 저가</span>
+                            <span class="quote-item-value" id="modalLowPrice" style="color: #3b82f6;">-</span>
+                        </div>
+                        <div class="quote-item">
+                            <span class="quote-item-label">당일 고가</span>
+                            <span class="quote-item-value" id="modalHighPrice" style="color: #ef4444;">-</span>
+                        </div>
+                        <div class="quote-item">
+                            <span class="quote-item-label">거래대금</span>
+                            <span class="quote-item-value" id="modalTradingValue">-</span>
+                        </div>
+                        <div class="quote-item">
+                            <span class="quote-item-label">거래량</span>
+                            <span class="quote-item-value" id="modalVolume">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-trade-buy" id="btnTradeBuy">가상 매수 (Buy)</button>
+                <button type="button" class="btn-trade-sell" id="btnTradeSell">가상 매도 (Sell)</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/client-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
     <script>
         // @ts-nocheck
         const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
         const ADMIN_USER_TYPE = 99;
+        const USER_TYPE_LABELS = { 1: '일반 회원', 2: 'Discord', 99: 'Admin' };
+        const ORDER_STATUS_LABELS = {
+            1: '대기중',
+            2: '부분체결',
+            3: '체결완료',
+            4: '취소됨',
+            5: '거절됨'
+        };
 
+        const myPageMain = document.getElementById('myPageMain');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const adminPageLink = document.getElementById('adminPageLink');
         const userSessionArea = document.getElementById('userSessionArea');
@@ -780,26 +1579,195 @@
         const extendSessionBtn = document.getElementById('extendSessionBtn');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        const scenarioSelect = document.getElementById('scenarioSelect');
-        const refreshWalletBtn = document.getElementById('refreshWalletBtn');
-        const walletCountBadge = document.getElementById('walletCountBadge');
-        const walletGrid = document.getElementById('walletGrid');
-        const walletEmptyState = document.getElementById('walletEmptyState');
+        // Banner
+        const bannerAvatar = document.getElementById('bannerAvatar');
+        const bannerNickname = document.getElementById('bannerNickname');
+        const bannerRoleBadge = document.getElementById('bannerRoleBadge');
+        const bannerKisBadge = document.getElementById('bannerKisBadge');
+        const bannerLoginId = document.getElementById('bannerLoginId');
+        const bannerJoinedAt = document.getElementById('bannerJoinedAt');
+        const bannerStrategyCount = document.getElementById('bannerStrategyCount');
+        const bannerUid = document.getElementById('bannerUid');
+        const copyUidBtn = document.getElementById('copyUidBtn');
+
+        // Assets & Holdings
+        const accountKrwBalance = document.getElementById('accountKrwBalance');
+        const accountUsdBalance = document.getElementById('accountUsdBalance');
+        const accountTxCurrencySelect = document.getElementById('accountTxCurrencySelect');
+        const accountTxAmountInput = document.getElementById('accountTxAmountInput');
+        const accountDepositBtn = document.getElementById('accountDepositBtn');
+        const accountWithdrawBtn = document.getElementById('accountWithdrawBtn');
+        const transferStrategySelect = document.getElementById('transferStrategySelect');
+        const transferDirectionSelect = document.getElementById('transferDirectionSelect');
+        const transferCurrencySelect = document.getElementById('transferCurrencySelect');
+        const transferAmountInput = document.getElementById('transferAmountInput');
+        const transferMaxBtn = document.getElementById('transferMaxBtn');
+        const transferSubmitBtn = document.getElementById('transferSubmitBtn');
+        const transferAvailableHint = document.getElementById('transferAvailableHint');
+        const walletTransferStatusMsg = document.getElementById('walletTransferStatusMsg');
+
+        const assetStrategySelect = document.getElementById('assetStrategySelect');
+        const assetCurrencySelect = document.getElementById('assetCurrencySelect');
+        const refreshAssetsBtn = document.getElementById('refreshAssetsBtn');
+        const kpiTotalCash = document.getElementById('kpiTotalCash');
+        const kpiCashBreakdown = document.getElementById('kpiCashBreakdown');
+        const kpiEvalTotal = document.getElementById('kpiEvalTotal');
+        const kpiHoldingsValue = document.getElementById('kpiHoldingsValue');
+        const kpiUnrealizedPnl = document.getElementById('kpiUnrealizedPnl');
+        const kpiUnrealizedRate = document.getElementById('kpiUnrealizedRate');
+        const kpiRealizedPnl = document.getElementById('kpiRealizedPnl');
+        const kpiRealizedSub = document.getElementById('kpiRealizedSub');
+        const holdingsCountBadge = document.getElementById('holdingsCountBadge');
+        const holdingsTableBody = document.getElementById('holdingsTableBody');
+        const holdingsEmptyState = document.getElementById('holdingsEmptyState');
+
+        // Watchlist
+        const watchlistCountBadge = document.getElementById('watchlistCountBadge');
+        const refreshWatchlistBtn = document.getElementById('refreshWatchlistBtn');
+        const watchlistSearchInput = document.getElementById('watchlistSearchInput');
+        const watchlistSearchBtn = document.getElementById('watchlistSearchBtn');
+        const watchlistSearchDropdown = document.getElementById('watchlistSearchDropdown');
+        const watchlistStatusMsg = document.getElementById('watchlistStatusMsg');
+        const watchlistTableBody = document.getElementById('watchlistTableBody');
+        const watchlistEmptyState = document.getElementById('watchlistEmptyState');
+
+        // History
+        const historyCountBadge = document.getElementById('historyCountBadge');
+        const historyStrategySelect = document.getElementById('historyStrategySelect');
+        const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+        const historyTableHead = document.getElementById('historyTableHead');
+        const historyTableBody = document.getElementById('historyTableBody');
+        const historyEmptyState = document.getElementById('historyEmptyState');
+        const historyPagination = document.getElementById('historyPagination');
+        const historyResultCountText = document.getElementById('historyResultCountText');
+        const historyFirstBtn = document.getElementById('historyFirstBtn');
+        const historyPrevBtn = document.getElementById('historyPrevBtn');
+        const historyNextBtn = document.getElementById('historyNextBtn');
+        const historyLastBtn = document.getElementById('historyLastBtn');
+        const historyPageInput = document.getElementById('historyPageInput');
+        const historyPageTotalLabel = document.getElementById('historyPageTotalLabel');
+
+        // Strategies
+        const strategyTabCountBadge = document.getElementById('strategyTabCountBadge');
+        const createStrategyForm = document.getElementById('createStrategyForm');
+        const newStrategyNameInput = document.getElementById('newStrategyNameInput');
+        const createStrategyBtn = document.getElementById('createStrategyBtn');
+        const strategyStatusMsg = document.getElementById('strategyStatusMsg');
+        const strategyGrid = document.getElementById('strategyGrid');
+        const strategyEmptyState = document.getElementById('strategyEmptyState');
+
+        // Account Forms
+        const nicknameForm = document.getElementById('nicknameForm');
+        const editNicknameInput = document.getElementById('editNicknameInput');
+        const nicknameStatusMsg = document.getElementById('nicknameStatusMsg');
+        const saveNicknameBtn = document.getElementById('saveNicknameBtn');
+
+        const passwordForm = document.getElementById('passwordForm');
+        const currentPwInput = document.getElementById('currentPwInput');
+        const newPwInput = document.getElementById('newPwInput');
+        const confirmPwInput = document.getElementById('confirmPwInput');
+        const pwRuleLen = document.getElementById('pwRuleLen');
+        const pwRuleMix = document.getElementById('pwRuleMix');
+        const pwRuleSpace = document.getElementById('pwRuleSpace');
+        const passwordStatusMsg = document.getElementById('passwordStatusMsg');
+        const savePasswordBtn = document.getElementById('savePasswordBtn');
 
         let currentProfile = null;
+        let loadedAccountWallets = [];
+        let loadedStrategies = [];
+        let loadedWatchlist = [];
+        let liveQuoteByCode = new Map();
+        let hasValidKisKey = false;
         let sessionExpiresAtMs = null;
         let sessionTimerId = null;
+        let serverWatchdogStarted = false;
 
-        // 1. 테마 초기화 및 슬라이드 전환
+        let historyScope = 'active';
+        let historyPage = 1;
+        let historyTotalPages = 1;
+        const HISTORY_PAGE_SIZE = 10;
+
         function initTheme() {
             const saved = localStorage.getItem('stocklab-theme') || 'light';
-            if (saved === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
+            if (saved === 'dark') document.body.classList.add('dark-mode');
             themeToggleBtn.addEventListener('click', () => {
                 const isDark = document.body.classList.toggle('dark-mode');
                 localStorage.setItem('stocklab-theme', isDark ? 'dark' : 'light');
             });
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatMoney(amount, currency) {
+            const num = Number(amount || 0);
+            if (currency === 'USD') {
+                return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+            return `${Math.round(num).toLocaleString('ko-KR')}원`;
+        }
+
+        function formatSignedMoney(amount, currency) {
+            const num = Number(amount || 0);
+            const absFormatted = formatMoney(Math.abs(num), currency);
+            if (num > 0) return `+${absFormatted}`;
+            if (num < 0) return `-${absFormatted}`;
+            return formatMoney(0, currency);
+        }
+
+        function formatKstDateTime(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '-';
+            return d.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function setStatus(el, msg, isOk = true) {
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = msg ? `status-text ${isOk ? 'ok' : 'err'}` : 'status-text';
+        }
+
+        async function lockLocalKisKeys() {
+            try { await fetch('/api/kis/lock', { method: 'POST', credentials: 'include' }); } catch { }
+        }
+
+        async function forceLogoutRedirect(message) {
+            await lockLocalKisKeys();
+            if (message) alert(message);
+            window.location.replace('/Dashboard/index.html');
+        }
+
+        async function fetchServerApi(path, options = {}) {
+            try {
+                const res = await fetch(buildServerUrl(path), {
+                    credentials: 'include',
+                    ...options
+                });
+                if (res.status === 401) {
+                    currentProfile = null;
+                    await forceLogoutRedirect('세션이 만료되었거나 서버가 재시작되어 다시 로그인해야 합니다.');
+                    return null;
+                }
+                return res;
+            } catch {
+                currentProfile = null;
+                await forceLogoutRedirect('서버와의 연결이 끊어져 로그아웃되었습니다. 다시 로그인해 주세요.');
+                return null;
+            }
         }
 
         function startSessionCountdown(expiresIso) {
@@ -813,8 +1781,7 @@
                 navSessionTimer.textContent = `${mm}:${ss}`;
                 if (remainingSec <= 0) {
                     clearInterval(sessionTimerId);
-                    alert('유효 세션 시간이 만료되어 다시 로그인이 필요합니다.');
-                    window.location.replace('/Auth/index.html');
+                    forceLogoutRedirect('유효 세션 시간이 만료되어 다시 로그인이 필요합니다.');
                 }
             };
 
@@ -825,126 +1792,1618 @@
         extendSessionBtn.addEventListener('click', async () => {
             extendSessionBtn.disabled = true;
             try {
-                const res = await fetch(buildServerUrl('/api/auth/extend'), {
-                    method: 'POST',
-                    credentials: 'include'
-                });
+                const res = await fetchServerApi('/api/auth/extend', { method: 'POST' });
+                if (!res) return;
                 if (res.ok) {
                     const json = await res.json();
                     if (json?.success && json.data?.sessionExpiresAtUtc) {
                         startSessionCountdown(json.data.sessionExpiresAtUtc);
                     }
                 } else {
-                    alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
-                    window.location.replace('/Auth/index.html');
+                    await forceLogoutRedirect('세션이 만료되었습니다. 다시 로그인해 주세요.');
                 }
             } finally {
                 extendSessionBtn.disabled = false;
             }
         });
 
-        // 2. 로그인 세션 검증 및 프로필 로드 (미로그인 시 대문으로 이동, 관리자 99만 관리자 버튼 노출)
-        async function loadProfile() {
-            try {
-                const res = await fetch(buildServerUrl('/api/auth/me'), { credentials: 'include' });
-                if (!res.ok) {
-                    alert('로그인이 필요한 서비스입니다.');
-                    window.location.replace('/Auth/index.html');
-                    return;
-                }
-                const json = await res.json();
-                if (!json || !json.success || !json.data) {
-                    alert('로그인이 필요한 서비스입니다.');
-                    window.location.replace('/Auth/index.html');
-                    return;
-                }
-
-                currentProfile = json.data;
-                userNicknameLabel.textContent = currentProfile.nickname || '사용자';
-                userSessionArea.classList.remove('hidden');
-                startSessionCountdown(currentProfile.sessionExpiresAtUtc);
-
-                if (Number(currentProfile.type) === ADMIN_USER_TYPE) {
-                    adminPageLink.classList.remove('hidden');
-                }
-
-                renderScenarioOptions(currentProfile.scenarios || []);
-            } catch {
-                window.location.replace('/Auth/index.html');
-            }
-        }
-
-        // 3. 시나리오 및 지갑 렌더링
-        function renderScenarioOptions(scenarios) {
-            scenarioSelect.innerHTML = '';
-            if (!scenarios.length) {
-                scenarioSelect.innerHTML = '<option value="">시나리오 없음</option>';
-                renderWallets([]);
-                return;
-            }
-
-            scenarios.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = String(s.scenarioId);
-                opt.textContent = s.name;
-                scenarioSelect.appendChild(opt);
-            });
-
-            renderWallets(scenarios[0].wallets || []);
-        }
-
-        function renderWallets(wallets) {
-            walletGrid.innerHTML = '';
-            walletCountBadge.textContent = `${wallets.length}개`;
-            if (!wallets.length) {
-                walletEmptyState.classList.remove('hidden');
-                return;
-            }
-            walletEmptyState.classList.add('hidden');
-
-            wallets.forEach(w => {
-                const total = Number(w.availableCash || 0) + Number(w.pendingCash || 0);
-                const card = document.createElement('div');
-                card.className = 'wallet-card';
-                card.innerHTML = `
-                    <div class="wallet-card-top">
-                        <span class="currency-badge">${w.currency}</span>
-                        <span class="wallet-id-text">#${w.walletId}</span>
-                    </div>
-                    <div class="wallet-total">${total.toLocaleString()} ${w.currency}</div>
-                    <div class="wallet-breakdown">
-                        <div class="wallet-metric">
-                            <span class="wallet-metric-label">주문 가능 (Available)</span>
-                            <span class="wallet-metric-value">${Number(w.availableCash || 0).toLocaleString()}</span>
-                        </div>
-                        <div class="wallet-metric">
-                            <span class="wallet-metric-label">주문 예약 (Pending)</span>
-                            <span class="wallet-metric-value">${Number(w.pendingCash || 0).toLocaleString()}</span>
-                        </div>
-                    </div>
-                `;
-                walletGrid.appendChild(card);
-            });
-        }
-
-        scenarioSelect.addEventListener('change', () => {
-            if (!currentProfile) return;
-            const selected = (currentProfile.scenarios || []).find(s => String(s.scenarioId) === scenarioSelect.value);
-            renderWallets(selected ? (selected.wallets || []) : []);
-        });
-
-        refreshWalletBtn.addEventListener('click', loadProfile);
-
         logoutBtn.addEventListener('click', async () => {
             try {
                 await fetch(buildServerUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
-            } finally {
-                window.location.replace('/Auth/index.html');
+            } catch { }
+            await lockLocalKisKeys();
+            window.location.replace('/Dashboard/index.html');
+        });
+
+        // Main Tab Switching
+        function activateMainTab(tabName) {
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.toggle('hidden', panel.id !== `tab-${tabName}`);
+            });
+        }
+
+        document.querySelectorAll('.main-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => activateMainTab(btn.dataset.tab));
+        });
+
+        // Copy UID
+        copyUidBtn.addEventListener('click', async () => {
+            if (!currentProfile?.uid) return;
+            try {
+                await navigator.clipboard.writeText(currentProfile.uid);
+                copyUidBtn.textContent = '복사됨';
+                setTimeout(() => { copyUidBtn.textContent = '복사'; }, 1500);
+            } catch {
+                alert(`내 UID: ${currentProfile.uid}`);
             }
         });
 
+        // Password Visibility & Rules
+        document.querySelectorAll('[data-toggle-pw]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.togglePw);
+                if (!input) return;
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+            });
+        });
+
+        function evaluatePasswordRules(pw) {
+            const lenOk = pw.length >= 8 && pw.length <= 64;
+            const mixOk = /[A-Za-z]/.test(pw) && /\d/.test(pw) && /[^A-Za-z0-9\s]/.test(pw);
+            const spaceOk = pw.length > 0 && !/\s/.test(pw);
+            return { lenOk, mixOk, spaceOk, valid: lenOk && mixOk && spaceOk };
+        }
+
+        newPwInput.addEventListener('input', () => {
+            const pw = newPwInput.value;
+            if (!pw) {
+                pwRuleLen.textContent = '• 8~64자 이내';
+                pwRuleMix.textContent = '• 영문, 숫자, 특수문자 각각 1자 이상 포함';
+                pwRuleSpace.textContent = '• 공백 사용 불가';
+                pwRuleLen.className = 'pw-rule';
+                pwRuleMix.className = 'pw-rule';
+                pwRuleSpace.className = 'pw-rule';
+                return;
+            }
+            const r = evaluatePasswordRules(pw);
+            pwRuleLen.textContent = `${r.lenOk ? '✓' : '✗'} 8~64자 이내`;
+            pwRuleMix.textContent = `${r.mixOk ? '✓' : '✗'} 영문, 숫자, 특수문자 각각 1자 이상 포함`;
+            pwRuleSpace.textContent = `${r.spaceOk ? '✓' : '✗'} 공백 사용 불가`;
+            pwRuleLen.className = `pw-rule ${r.lenOk ? 'ok' : 'bad'}`;
+            pwRuleMix.className = `pw-rule ${r.mixOk ? 'ok' : 'bad'}`;
+            pwRuleSpace.className = `pw-rule ${r.spaceOk ? 'ok' : 'bad'}`;
+        });
+
+        // Load Initial Data
+        async function loadProfileAndKis() {
+            try {
+                const res = await fetchServerApi('/api/auth/me');
+                if (!res) return false;
+                if (!res.ok) {
+                    await forceLogoutRedirect('로그인이 필요한 서비스입니다.');
+                    return false;
+                }
+                const json = await res.json();
+                if (!json?.success || !json.data) {
+                    await forceLogoutRedirect('로그인이 필요한 서비스입니다.');
+                    return false;
+                }
+
+                const profile = json.data;
+                // 게스트 계정은 마이페이지 진입 차단
+                if (profile.isGuest || !profile.loginId) {
+                    alert('게스트 계정은 마이페이지를 이용할 수 없습니다. 대시보드로 이동합니다.');
+                    window.location.replace('/Dashboard/index.html');
+                    return false;
+                }
+
+                currentProfile = profile;
+                const unlockRes = await fetch('/api/kis/unlock', { method: 'POST', credentials: 'include' }).catch(() => null);
+                if (unlockRes && unlockRes.ok) {
+                    const kisJson = await unlockRes.json();
+                    hasValidKisKey = Boolean(kisJson?.success && kisJson?.data?.isConnected);
+                } else {
+                    hasValidKisKey = false;
+                }
+
+                renderProfileBanner();
+                userSessionArea.classList.remove('hidden');
+                startSessionCountdown(profile.sessionExpiresAtUtc);
+                if (Number(profile.type) === ADMIN_USER_TYPE) {
+                    adminPageLink.classList.remove('hidden');
+                }
+                myPageMain.classList.remove('hidden');
+
+                await Promise.all([
+                    refreshStrategiesAndAssets(),
+                    loadWatchlist(),
+                    loadTradingHistory(1)
+                ]);
+                return true;
+            } catch {
+                await forceLogoutRedirect('서버와 연결할 수 없습니다.');
+                return false;
+            }
+        }
+
+        function renderProfileBanner() {
+            if (!currentProfile) return;
+            const nick = currentProfile.nickname || '사용자';
+            userNicknameLabel.textContent = nick;
+            bannerAvatar.textContent = nick.charAt(0).toUpperCase();
+            bannerNickname.textContent = nick;
+            editNicknameInput.value = nick;
+            bannerRoleBadge.textContent = USER_TYPE_LABELS[Number(currentProfile.type)] || '일반 회원';
+            bannerLoginId.textContent = currentProfile.loginId || '-';
+            bannerJoinedAt.textContent = formatKstDateTime(currentProfile.createdAtUtc);
+            bannerUid.textContent = currentProfile.uid || '-';
+
+            bannerKisBadge.textContent = hasValidKisKey ? 'KIS 연동됨' : 'KIS 미연동';
+            bannerKisBadge.className = `pill-badge ${hasValidKisKey ? 'kis-ok' : 'kis-off'}`;
+        }
+
+        async function refreshLiveQuotesForCodes(codes) {
+            if (!hasValidKisKey || !codes.length) return;
+            const unique = [...new Set(codes.map(c => String(c || '').trim()).filter(Boolean))];
+            await Promise.all(unique.map(async code => {
+                try {
+                    const res = await fetch(`/api/stocks/${encodeURIComponent(code)}/quote`);
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json?.success && json.data) {
+                            liveQuoteByCode.set(code.toUpperCase(), json.data);
+                        }
+                    }
+                } catch { }
+            }));
+        }
+
+        async function refreshStrategiesAndAssets() {
+            try {
+                const [stratRes, walletRes] = await Promise.all([
+                    fetchServerApi('/api/strategies'),
+                    fetchServerApi('/api/account/wallets')
+                ]);
+
+                if (walletRes && walletRes.ok) {
+                    const walletJson = await walletRes.json();
+                    if (walletJson?.success && Array.isArray(walletJson.data)) {
+                        loadedAccountWallets = walletJson.data;
+                        renderAccountWallets();
+                    }
+                }
+
+                if (!stratRes || !stratRes.ok) return;
+                const json = await stratRes.json();
+                if (!json?.success || !Array.isArray(json.data)) return;
+
+                loadedStrategies = json.data;
+                bannerStrategyCount.textContent = `${loadedStrategies.length}개`;
+                strategyTabCountBadge.textContent = `${loadedStrategies.length}개`;
+
+                const holdingCodes = [];
+                loadedStrategies.forEach(s => {
+                    (s.holdings || []).forEach(h => {
+                        if (Number(h.quantity) > 0) holdingCodes.push(h.stockCode);
+                    });
+                });
+                await refreshLiveQuotesForCodes(holdingCodes);
+
+                syncStrategyDropdowns();
+                updateTransferAvailableHint();
+                renderAssetsSection();
+                renderStrategyCards();
+            } catch (e) {
+                console.error('전략 목록 조회 실패:', e);
+            }
+        }
+
+        function getAccountWalletBalance(currency) {
+            const target = (currency || 'KRW').toUpperCase();
+            const found = loadedAccountWallets.find(w => (w.currency || '').toUpperCase() === target);
+            return found ? Number(found.balance || 0) : 0;
+        }
+
+        function renderAccountWallets() {
+            accountKrwBalance.textContent = formatMoney(getAccountWalletBalance('KRW'), 'KRW');
+            accountUsdBalance.textContent = formatMoney(getAccountWalletBalance('USD'), 'USD');
+        }
+
+        function getTransferableMaxAmount() {
+            const direction = transferDirectionSelect.value || 'ToStrategy';
+            const currency = (transferCurrencySelect.value || 'KRW').toUpperCase();
+            if (direction === 'ToStrategy') {
+                return getAccountWalletBalance(currency);
+            }
+            const strategyId = transferStrategySelect.value;
+            const strategy = loadedStrategies.find(s => String(s.strategyId) === String(strategyId));
+            if (!strategy) return 0;
+            const wallet = (strategy.wallets || []).find(w => (w.currency || '').toUpperCase() === currency);
+            return wallet ? Number(wallet.availableCash || 0) : 0;
+        }
+
+        function updateTransferAvailableHint() {
+            if (loadedStrategies.length === 0) {
+                transferAvailableHint.textContent = '등록된 투자 전략이 없습니다 (전략 관리 탭에서 생성 가능)';
+                return;
+            }
+            const currency = (transferCurrencySelect.value || 'KRW').toUpperCase();
+            const maxAmt = getTransferableMaxAmount();
+            const dirLabel = (transferDirectionSelect.value || 'ToStrategy') === 'ToStrategy'
+                ? '통합 예수금 출금 가능'
+                : '전략 주문가능 예수금';
+            transferAvailableHint.textContent = `${dirLabel}: ${formatMoney(maxAmt, currency)}`;
+        }
+
+        function syncStrategyDropdowns() {
+            const prevAssetVal = assetStrategySelect.value || 'all';
+            const prevHistoryVal = historyStrategySelect.value || '';
+            const prevTransferVal = transferStrategySelect.value || '';
+
+            assetStrategySelect.innerHTML = '<option value="all">전체 투자 전략 합산</option>';
+            historyStrategySelect.innerHTML = '<option value="">전체 투자 전략</option>';
+            transferStrategySelect.innerHTML = '';
+
+            if (loadedStrategies.length === 0) {
+                const emptyOpt = document.createElement('option');
+                emptyOpt.value = '';
+                emptyOpt.textContent = '등록된 투자 전략 없음';
+                transferStrategySelect.appendChild(emptyOpt);
+                transferStrategySelect.disabled = true;
+                transferSubmitBtn.disabled = true;
+                transferMaxBtn.disabled = true;
+            } else {
+                transferStrategySelect.disabled = false;
+                transferSubmitBtn.disabled = false;
+                transferMaxBtn.disabled = false;
+            }
+
+            loadedStrategies.forEach(s => {
+                const opt1 = document.createElement('option');
+                opt1.value = String(s.strategyId);
+                opt1.textContent = s.name;
+                assetStrategySelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = String(s.strategyId);
+                opt2.textContent = s.name;
+                historyStrategySelect.appendChild(opt2);
+
+                const opt3 = document.createElement('option');
+                opt3.value = String(s.strategyId);
+                opt3.textContent = s.name;
+                transferStrategySelect.appendChild(opt3);
+            });
+
+            if (prevAssetVal === 'all' || loadedStrategies.some(s => String(s.strategyId) === prevAssetVal)) {
+                assetStrategySelect.value = prevAssetVal;
+            }
+            if (!prevHistoryVal || loadedStrategies.some(s => String(s.strategyId) === prevHistoryVal)) {
+                historyStrategySelect.value = prevHistoryVal;
+            }
+            if (prevTransferVal && loadedStrategies.some(s => String(s.strategyId) === prevTransferVal)) {
+                transferStrategySelect.value = prevTransferVal;
+            } else if (loadedStrategies.length > 0) {
+                transferStrategySelect.value = String(loadedStrategies[0].strategyId);
+            }
+        }
+
+        function computeStrategyMetrics(strategies, currency) {
+            let availableCash = 0;
+            let pendingCash = 0;
+            let realizedPnl = 0;
+            let stockEval = 0;
+            let stockCost = 0;
+            const holdingRows = [];
+
+            strategies.forEach(s => {
+                const wallet = (s.wallets || []).find(w => (w.currency || '').toUpperCase() === currency);
+                if (wallet) {
+                    availableCash += Number(wallet.availableCash || 0);
+                    pendingCash += Number(wallet.pendingCash || 0);
+                    realizedPnl += Number(wallet.realizedPnl || 0);
+                }
+
+                (s.holdings || []).forEach(h => {
+                    const qty = Number(h.quantity || 0);
+                    if (qty <= 0) return;
+                    const hCurr = (h.currency || 'KRW').toUpperCase();
+                    if (hCurr !== currency) return;
+
+                    const quote = liveQuoteByCode.get((h.stockCode || '').toUpperCase());
+                    const curPrice = quote && Number(quote.currentPrice) > 0
+                        ? Number(quote.currentPrice)
+                        : Number(h.currentPrice || h.averageBuyPrice || 0);
+                    const avgPrice = Number(h.averageBuyPrice || 0);
+                    const evalVal = qty * curPrice;
+                    const costVal = qty * avgPrice;
+                    const pnl = evalVal - costVal;
+                    const rate = costVal > 0 ? (pnl / costVal) * 100 : 0;
+
+                    stockEval += evalVal;
+                    stockCost += costVal;
+
+                    holdingRows.push({
+                        strategyName: s.name,
+                        stockCode: h.stockCode,
+                        stockName: quote?.stockName || h.stockCode,
+                        quantity: qty,
+                        avgPrice,
+                        curPrice,
+                        evalVal,
+                        pnl,
+                        rate,
+                        currency
+                    });
+                });
+            });
+
+            const totalCash = availableCash + pendingCash;
+            const totalEval = totalCash + stockEval;
+            const unrealizedPnl = stockEval - stockCost;
+            const unrealizedRate = stockCost > 0 ? (unrealizedPnl / stockCost) * 100 : 0;
+
+            return {
+                availableCash,
+                pendingCash,
+                totalCash,
+                stockEval,
+                totalEval,
+                unrealizedPnl,
+                unrealizedRate,
+                realizedPnl,
+                holdingRows
+            };
+        }
+
+        function renderAssetsSection() {
+            const selectedStrategyId = assetStrategySelect.value;
+            const currency = assetCurrencySelect.value || 'KRW';
+            const targets = selectedStrategyId === 'all'
+                ? loadedStrategies
+                : loadedStrategies.filter(s => String(s.strategyId) === selectedStrategyId);
+
+            const m = computeStrategyMetrics(targets, currency);
+
+            kpiTotalCash.textContent = formatMoney(m.totalCash, currency);
+            kpiCashBreakdown.textContent = `가능 ${formatMoney(m.availableCash, currency)} / 예약 ${formatMoney(m.pendingCash, currency)}`;
+            kpiEvalTotal.textContent = formatMoney(m.totalEval, currency);
+            kpiHoldingsValue.textContent = `보유 평가액 ${formatMoney(m.stockEval, currency)}`;
+
+            kpiUnrealizedPnl.textContent = formatSignedMoney(m.unrealizedPnl, currency);
+            kpiUnrealizedPnl.className = `kpi-value ${m.unrealizedPnl > 0 ? 'val-up' : (m.unrealizedPnl < 0 ? 'val-down' : '')}`;
+            kpiUnrealizedRate.textContent = `수익률 ${m.unrealizedRate > 0 ? '+' : ''}${m.unrealizedRate.toFixed(2)}%`;
+
+            kpiRealizedPnl.textContent = formatSignedMoney(m.realizedPnl, currency);
+            kpiRealizedPnl.className = `kpi-value ${m.realizedPnl > 0 ? 'val-up' : (m.realizedPnl < 0 ? 'val-down' : '')}`;
+            kpiRealizedSub.textContent = `${currency} 기준 누적 확정 손익`;
+
+            holdingsCountBadge.textContent = `${m.holdingRows.length}개`;
+            holdingsTableBody.innerHTML = '';
+
+            if (m.holdingRows.length === 0) {
+                holdingsEmptyState.classList.remove('hidden');
+                return;
+            }
+            holdingsEmptyState.classList.add('hidden');
+
+            m.holdingRows.forEach(r => {
+                const pnlClass = r.pnl > 0 ? 'val-up' : (r.pnl < 0 ? 'val-down' : '');
+                const tr = document.createElement('tr');
+                tr.className = 'clickable-stock-row';
+                tr.title = '클릭하여 실시간 시세 및 호가 상세 보기';
+                tr.innerHTML = `
+                    <td>${escapeHtml(r.strategyName)}</td>
+                    <td><strong>${escapeHtml(r.stockName)}</strong> <span style="color:var(--text-muted); font-size:0.78rem;">(${escapeHtml(r.stockCode)})</span></td>
+                    <td class="num">${r.quantity.toLocaleString('ko-KR')}</td>
+                    <td class="num">${formatMoney(r.avgPrice, r.currency)}</td>
+                    <td class="num">${formatMoney(r.curPrice, r.currency)}</td>
+                    <td class="num"><strong>${formatMoney(r.evalVal, r.currency)}</strong></td>
+                    <td class="num ${pnlClass}">${formatSignedMoney(r.pnl, r.currency)} (${r.rate > 0 ? '+' : ''}${r.rate.toFixed(2)}%)</td>
+                `;
+                tr.addEventListener('click', () => openQuoteModal(r.stockCode));
+                holdingsTableBody.appendChild(tr);
+            });
+        }
+
+        assetStrategySelect.addEventListener('change', renderAssetsSection);
+        assetCurrencySelect.addEventListener('change', renderAssetsSection);
+        refreshAssetsBtn.addEventListener('click', refreshStrategiesAndAssets);
+
+        transferStrategySelect.addEventListener('change', updateTransferAvailableHint);
+        transferDirectionSelect.addEventListener('change', updateTransferAvailableHint);
+        transferCurrencySelect.addEventListener('change', updateTransferAvailableHint);
+
+        transferMaxBtn.addEventListener('click', () => {
+            const maxAmt = getTransferableMaxAmount();
+            transferAmountInput.value = maxAmt > 0 ? String(maxAmt) : '';
+        });
+
+        async function handleAccountWalletTransaction(mode) {
+            const currency = (accountTxCurrencySelect.value || 'KRW').toUpperCase();
+            const amount = Number(accountTxAmountInput.value);
+            setStatus(walletTransferStatusMsg, '');
+
+            if (!Number.isFinite(amount) || amount <= 0) {
+                setStatus(walletTransferStatusMsg, '입출금할 금액을 0보다 크게 입력해 주세요.', false);
+                return;
+            }
+
+            const endpoint = mode === 'deposit' ? '/api/account/wallets/deposit' : '/api/account/wallets/withdraw';
+            const actionLabel = mode === 'deposit' ? '입금' : '출금';
+            accountDepositBtn.disabled = true;
+            accountWithdrawBtn.disabled = true;
+
+            try {
+                const res = await fetchServerApi(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currency, amount })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(walletTransferStatusMsg, json?.error?.message || `통합 예수금 ${actionLabel}에 실패했습니다.`, false);
+                    return;
+                }
+                accountTxAmountInput.value = '';
+                setStatus(walletTransferStatusMsg, `통합 예수금 ${formatMoney(amount, currency)} ${actionLabel}이 완료되었습니다.`, true);
+                await refreshStrategiesAndAssets();
+            } catch {
+                setStatus(walletTransferStatusMsg, '서버와 통신할 수 없습니다.', false);
+            } finally {
+                accountDepositBtn.disabled = false;
+                accountWithdrawBtn.disabled = false;
+            }
+        }
+
+        accountDepositBtn.addEventListener('click', () => handleAccountWalletTransaction('deposit'));
+        accountWithdrawBtn.addEventListener('click', () => handleAccountWalletTransaction('withdraw'));
+
+        transferSubmitBtn.addEventListener('click', async () => {
+            const strategyId = transferStrategySelect.value;
+            const direction = transferDirectionSelect.value || 'ToStrategy';
+            const currency = (transferCurrencySelect.value || 'KRW').toUpperCase();
+            const amount = Number(transferAmountInput.value);
+            setStatus(walletTransferStatusMsg, '');
+
+            if (!strategyId) {
+                setStatus(walletTransferStatusMsg, '이체할 대상 투자 전략을 선택해 주세요.', false);
+                return;
+            }
+            if (!Number.isFinite(amount) || amount <= 0) {
+                setStatus(walletTransferStatusMsg, '이체할 금액을 0보다 크게 입력해 주세요.', false);
+                return;
+            }
+
+            transferSubmitBtn.disabled = true;
+            try {
+                const res = await fetchServerApi(`/api/strategies/${encodeURIComponent(strategyId)}/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ direction, currency, amount })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(walletTransferStatusMsg, json?.error?.message || '자금 이체에 실패했습니다.', false);
+                    return;
+                }
+                transferAmountInput.value = '';
+                const dirDesc = direction === 'ToStrategy' ? '통합 예수금 → 투자 전략' : '투자 전략 → 통합 예수금';
+                setStatus(walletTransferStatusMsg, `[${dirDesc}] ${formatMoney(amount, currency)} 이체가 완료되었습니다.`, true);
+                await refreshStrategiesAndAssets();
+            } catch {
+                setStatus(walletTransferStatusMsg, '서버와 통신할 수 없습니다.', false);
+            } finally {
+                transferSubmitBtn.disabled = false;
+            }
+        });
+
+        // Watchlist & Client WebSocket (SignalR /hubs/quote)
+        const quoteHubConnection = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/quote')
+            .withAutomaticReconnect()
+            .build();
+
+        let currentModalCode = null;
+        let lastQuoteFetchTime = 0;
+        let refreshCooldownTimer = null;
+        const QUOTE_COOLDOWN_MS = 5000;
+
+        function applyRealtimeOrderBookTickToWatchlist(status) {
+            if (!status || !status.stockCode) return;
+            const code = String(status.stockCode).toUpperCase();
+            const topBid = Number(status.bids?.[0]?.price || status.bidPrices?.[0]?.price || 0);
+            const topAsk = Number(status.asks?.[0]?.price || status.askPrices?.[0]?.price || 0);
+            const livePrice = topBid > 0 ? topBid : topAsk;
+            if (livePrice <= 0) return;
+
+            const existing = liveQuoteByCode.get(code);
+            const watchItem = loadedWatchlist.find(w => (w.stockCode || '').toUpperCase() === code);
+            const basePrice = Number(existing?.basePrice || watchItem?.basePrice || 0);
+            const isRealtimeSocket = status.updatedTime && !String(status.updatedTime).includes('메모리 기준');
+
+            let priceChange = existing ? Number(existing.priceChange || 0) : null;
+            let changeRate = existing ? Number(existing.changeRate || 0) : null;
+            if (basePrice > 0) {
+                priceChange = livePrice - basePrice;
+                changeRate = ((livePrice - basePrice) / basePrice) * 100;
+            }
+
+            liveQuoteByCode.set(code, {
+                ...(existing || {}),
+                stockCode: code,
+                stockName: existing?.stockName || watchItem?.stockName || code,
+                marketType: status.marketType || existing?.marketType || watchItem?.marketType || 'KOSPI',
+                exchangeCode: status.exchangeCode || existing?.exchangeCode || watchItem?.exchangeCode || 'KRX',
+                currency: status.currency || existing?.currency || watchItem?.currency || 'KRW',
+                currentPrice: livePrice,
+                basePrice: basePrice > 0 ? basePrice : livePrice,
+                priceChange,
+                changeRate,
+                isWebSocketLive: Boolean(isRealtimeSocket),
+                updatedTime: status.updatedTime || ''
+            });
+
+            if (watchItem) {
+                renderWatchlist();
+            }
+            const hasHolding = loadedStrategies.some(s =>
+                (s.holdings || []).some(h => Number(h.quantity) > 0 && (h.stockCode || '').toUpperCase() === code));
+            if (hasHolding) {
+                renderAssetsSection();
+                renderStrategyCards();
+            }
+        }
+
+        quoteHubConnection.on('ReceiveRealtimeStock', (status) => {
+            if (!status) return;
+            applyRealtimeOrderBookTickToWatchlist(status);
+
+            if (currentModalCode && String(status.stockCode || '').toUpperCase() === currentModalCode.toUpperCase()) {
+                lastQuoteFetchTime = Date.now();
+                syncRefreshButtonState();
+                renderOrderBook(status);
+            }
+        });
+
+        quoteHubConnection.onreconnected(async () => {
+            await syncWatchlistWebSocketSubscriptions();
+            if (currentModalCode && quoteHubConnection.state === signalR.HubConnectionState.Connected) {
+                quoteHubConnection.invoke('RegisterStock', currentModalCode)
+                    .catch(err => console.error('[SignalR] 재연결 후 상세 종목 등록 오류:', err));
+            }
+        });
+
+        async function ensureQuoteHubConnected() {
+            if (!hasValidKisKey) return false;
+            if (quoteHubConnection.state === signalR.HubConnectionState.Disconnected) {
+                try {
+                    await quoteHubConnection.start();
+                } catch (err) {
+                    console.error('[SignalR] /hubs/quote 연결 실패:', err);
+                    return false;
+                }
+            }
+            return quoteHubConnection.state === signalR.HubConnectionState.Connected;
+        }
+
+        async function syncWatchlistWebSocketSubscriptions() {
+            if (!hasValidKisKey) return;
+            const connected = await ensureQuoteHubConnected();
+            if (!connected) return;
+
+            const codes = loadedWatchlist
+                .map(w => String(w.stockCode || '').trim().toUpperCase())
+                .filter(Boolean);
+
+            try {
+                await quoteHubConnection.invoke('SyncWatchlistStocks', codes);
+            } catch (err) {
+                console.error('[SignalR] 관심종목 웹소켓 동기화 오류:', err);
+            }
+        }
+
+        async function loadWatchlist() {
+            try {
+                const res = await fetchServerApi('/api/watchlist');
+                if (!res || !res.ok) return;
+                const json = await res.json();
+                if (!json?.success || !Array.isArray(json.data)) return;
+
+                loadedWatchlist = json.data;
+                watchlistCountBadge.textContent = `${loadedWatchlist.length}개`;
+
+                await refreshLiveQuotesForCodes(loadedWatchlist.map(w => w.stockCode));
+                renderWatchlist();
+                await syncWatchlistWebSocketSubscriptions();
+                if (currentModalCode) {
+                    syncModalWatchlistButtonUI(currentModalCode);
+                }
+            } catch (e) {
+                console.error('관심종목 조회 실패:', e);
+            }
+        }
+
+        function renderWatchlist() {
+            watchlistTableBody.innerHTML = '';
+            if (loadedWatchlist.length === 0) {
+                watchlistEmptyState.classList.remove('hidden');
+                return;
+            }
+            watchlistEmptyState.classList.add('hidden');
+
+            loadedWatchlist.forEach(w => {
+                const quote = liveQuoteByCode.get((w.stockCode || '').toUpperCase());
+                const price = quote && Number(quote.currentPrice) > 0 ? Number(quote.currentPrice) : Number(w.basePrice || 0);
+                const priceChange = (quote && quote.priceChange !== undefined && quote.priceChange !== null) ? Number(quote.priceChange) : null;
+                const changeRate = (quote && quote.changeRate !== undefined && quote.changeRate !== null) ? Number(quote.changeRate) : null;
+                const sourceText = quote
+                    ? (quote.isWebSocketLive ? 'KIS 웹소켓 실시간' : 'KIS 실시간')
+                    : '마스터 기준가';
+
+                let changeHtml = '-';
+                let changeClass = '';
+                if (priceChange !== null && changeRate !== null) {
+                    changeClass = changeRate > 0 ? 'val-up' : (changeRate < 0 ? 'val-down' : '');
+                    const arrow = changeRate > 0 ? '▲' : (changeRate < 0 ? '▼' : '-');
+                    changeHtml = `${arrow} ${formatMoney(Math.abs(priceChange), w.currency)} (${changeRate > 0 ? '+' : ''}${changeRate.toFixed(2)}%)`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'clickable-stock-row';
+                tr.title = '클릭하여 실시간 시세 및 호가 상세 보기';
+                tr.innerHTML = `
+                    <td><span class="uid-mono">${escapeHtml(w.stockCode)}</span></td>
+                    <td><strong>${escapeHtml(w.stockName)}</strong></td>
+                    <td>${escapeHtml(w.marketType)} / ${escapeHtml(w.exchangeCode)}</td>
+                    <td class="num"><strong>${price > 0 ? formatMoney(price, w.currency) : '-'}</strong></td>
+                    <td class="num ${changeClass}">${changeHtml}</td>
+                    <td><span class="pill-badge ${quote ? 'kis-ok' : ''}">${sourceText}</span></td>
+                    <td><button type="button" class="btn-danger-sm">삭제</button></td>
+                `;
+                tr.addEventListener('click', () => openQuoteModal(w.stockCode));
+                tr.querySelector('button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeWatchlist(w.stockCode);
+                });
+                watchlistTableBody.appendChild(tr);
+            });
+        }
+
+        async function searchWatchlistStocks() {
+            const q = watchlistSearchInput.value.trim();
+            setStatus(watchlistStatusMsg, '');
+            if (!q) {
+                watchlistSearchDropdown.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/stocks/search?name=${encodeURIComponent(q)}&market=ALL`);
+                const json = await res.json();
+                const list = (json?.success && Array.isArray(json.data)) ? json.data.slice(0, 15) : [];
+
+                watchlistSearchDropdown.innerHTML = '';
+                if (list.length === 0) {
+                    watchlistSearchDropdown.innerHTML = '<div class="search-result-row" style="color:var(--text-muted); cursor:default;">검색 결과가 없습니다.</div>';
+                } else {
+                    list.forEach(item => {
+                        const row = document.createElement('div');
+                        row.className = 'search-result-row';
+                        row.innerHTML = `
+                            <div>
+                                <strong>${escapeHtml(item.koreanName)}</strong>
+                                <span style="color:var(--text-muted); margin-left:0.35rem;">${escapeHtml(item.shortCode)} · ${escapeHtml(item.marketType)}</span>
+                            </div>
+                            <span style="color:var(--accent-primary); font-weight:700;">+ 추가</span>
+                        `;
+                        row.addEventListener('click', () => addWatchlistStock(item.shortCode));
+                        watchlistSearchDropdown.appendChild(row);
+                    });
+                }
+                watchlistSearchDropdown.classList.remove('hidden');
+            } catch {
+                setStatus(watchlistStatusMsg, '종목 검색 중 오류가 발생했습니다.', false);
+            }
+        }
+
+        async function addWatchlistStock(stockCode) {
+            watchlistSearchDropdown.classList.add('hidden');
+            setStatus(watchlistStatusMsg, '');
+            try {
+                const res = await fetchServerApi('/api/watchlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stockCode })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(watchlistStatusMsg, json?.error?.message || '관심종목 추가에 실패했습니다.', false);
+                    return;
+                }
+                watchlistSearchInput.value = '';
+                setStatus(watchlistStatusMsg, `'${json.data.stockName}' 종목을 관심종목에 추가했습니다.`, true);
+                await loadWatchlist();
+            } catch {
+                setStatus(watchlistStatusMsg, '서버와 통신할 수 없습니다.', false);
+            }
+        }
+
+        window.removeWatchlist = async (stockCode) => {
+            setStatus(watchlistStatusMsg, '');
+            try {
+                const res = await fetchServerApi(`/api/watchlist/${encodeURIComponent(stockCode)}`, {
+                    method: 'DELETE'
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(watchlistStatusMsg, json?.error?.message || '관심종목 삭제에 실패했습니다.', false);
+                    return;
+                }
+                await loadWatchlist();
+            } catch {
+                setStatus(watchlistStatusMsg, '서버와 통신할 수 없습니다.', false);
+            }
+        };
+
+        watchlistSearchBtn.addEventListener('click', searchWatchlistStocks);
+        watchlistSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchWatchlistStocks();
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.watchlist-search-box')) {
+                watchlistSearchDropdown.classList.add('hidden');
+            }
+        });
+        refreshWatchlistBtn.addEventListener('click', loadWatchlist);
+
+        // Trading History (Active vs Completed vs Trades)
+        function resolveStrategyName(strategyId) {
+            const found = loadedStrategies.find(s => Number(s.strategyId) === Number(strategyId));
+            return found ? found.name : `전략 #${strategyId}`;
+        }
+
+        function inferCurrency(stockCode) {
+            return /^\d+$/.test(String(stockCode || '')) ? 'KRW' : 'USD';
+        }
+
+        async function loadTradingHistory(targetPage = 1) {
+            historyPage = Math.max(1, targetPage);
+            const strategyId = historyStrategySelect.value;
+            const params = new URLSearchParams({
+                page: String(historyPage),
+                pageSize: String(HISTORY_PAGE_SIZE)
+            });
+            if (strategyId) params.set('strategyId', strategyId);
+
+            const isTrades = historyScope === 'trades';
+            const url = isTrades
+                ? `/api/orders/trades/paged?${params.toString()}`
+                : `/api/orders/paged?${params.toString()}&scope=${encodeURIComponent(historyScope)}`;
+
+            try {
+                const res = await fetchServerApi(url);
+                if (!res || !res.ok) return;
+                const json = await res.json();
+                if (!json?.success || !json.data) return;
+
+                const paged = json.data;
+                historyPage = paged.page || 1;
+                historyTotalPages = Math.max(1, paged.totalPages || 1);
+                const totalCount = paged.totalCount || 0;
+                const items = paged.items || [];
+
+                historyCountBadge.textContent = `총 ${totalCount.toLocaleString('ko-KR')}건`;
+                renderTradingHistoryTable(items);
+                renderHistoryPagination(totalCount);
+            } catch (e) {
+                console.error('거래내역 조회 실패:', e);
+            }
+        }
+
+        function renderTradingHistoryTable(items) {
+            historyTableBody.innerHTML = '';
+
+            if (historyScope === 'trades') {
+                historyTableHead.innerHTML = `
+                    <tr>
+                        <th>체결 시각</th>
+                        <th>투자 전략</th>
+                        <th>주문번호</th>
+                        <th>종목</th>
+                        <th>구분</th>
+                        <th class="num">체결 단가</th>
+                        <th class="num">체결 수량</th>
+                        <th class="num">체결 금액</th>
+                    </tr>
+                `;
+            } else {
+                const actionHeader = historyScope === 'active' ? '<th>관리</th>' : '';
+                historyTableHead.innerHTML = `
+                    <tr>
+                        <th>주문 시각</th>
+                        <th>투자 전략</th>
+                        <th>종목</th>
+                        <th>구분 / 유형</th>
+                        <th class="num">주문 단가</th>
+                        <th class="num">체결 / 주문 수량</th>
+                        <th class="num">주문 총액</th>
+                        <th>상태</th>
+                        ${actionHeader}
+                    </tr>
+                `;
+            }
+
+            if (items.length === 0) {
+                historyEmptyState.classList.remove('hidden');
+                return;
+            }
+            historyEmptyState.classList.add('hidden');
+
+            items.forEach(row => {
+                const tr = document.createElement('tr');
+                const curr = inferCurrency(row.stockCode);
+                const isBuy = Number(row.side) === 1;
+                const sideBadge = `<span class="badge ${isBuy ? 'badge-buy' : 'badge-sell'}">${isBuy ? '매수' : '매도'}</span>`;
+
+                if (historyScope === 'trades') {
+                    tr.innerHTML = `
+                        <td>${escapeHtml(formatKstDateTime(row.executedAtUtc))}</td>
+                        <td>${escapeHtml(resolveStrategyName(row.strategyId))}</td>
+                        <td><span class="uid-mono">#${row.orderId}</span></td>
+                        <td><strong>${escapeHtml(row.stockCode)}</strong></td>
+                        <td>${sideBadge}</td>
+                        <td class="num">${formatMoney(row.executedPrice, curr)}</td>
+                        <td class="num">${Number(row.executedQuantity || 0).toLocaleString('ko-KR')}</td>
+                        <td class="num"><strong>${formatMoney(row.totalAmount, curr)}</strong></td>
+                    `;
+                } else {
+                    const orderTypeText = Number(row.orderType) === 1 ? '시장가' : '지정가';
+                    const statusNum = Number(row.status);
+                    const statusText = ORDER_STATUS_LABELS[statusNum] || String(row.status);
+                    const statusCls = statusNum === 3 ? 'badge-filled' : (statusNum <= 2 ? 'badge-pending' : 'badge-cancelled');
+                    const cancelCell = historyScope === 'active'
+                        ? `<td><button type="button" class="btn-danger-sm js-cancel-order-btn">주문 취소</button></td>`
+                        : '';
+
+                    tr.innerHTML = `
+                        <td>${escapeHtml(formatKstDateTime(row.orderedAtUtc))}</td>
+                        <td>${escapeHtml(resolveStrategyName(row.strategyId))}</td>
+                        <td><strong>${escapeHtml(row.stockCode)}</strong></td>
+                        <td>${sideBadge} <span style="color:var(--text-muted); font-size:0.78rem;">${orderTypeText}</span></td>
+                        <td class="num">${formatMoney(row.orderPrice, curr)}</td>
+                        <td class="num">${Number(row.filledQuantity || 0).toLocaleString('ko-KR')} / ${Number(row.quantity || 0).toLocaleString('ko-KR')}</td>
+                        <td class="num"><strong>${formatMoney(row.totalAmount, curr)}</strong></td>
+                        <td><span class="badge ${statusCls}">${statusText}</span></td>
+                        ${cancelCell}
+                    `;
+                    const cancelBtn = tr.querySelector('.js-cancel-order-btn');
+                    if (cancelBtn) {
+                        cancelBtn.addEventListener('click', () => cancelActiveOrder(row.orderId));
+                    }
+                }
+                historyTableBody.appendChild(tr);
+            });
+        }
+
+        function renderHistoryPagination(totalCount) {
+            if (totalCount <= 0) {
+                historyPagination.classList.add('hidden');
+                return;
+            }
+            historyPagination.classList.remove('hidden');
+            historyResultCountText.textContent = `총 ${totalCount.toLocaleString('ko-KR')}건`;
+            historyPageInput.value = String(historyPage);
+            historyPageInput.max = String(historyTotalPages);
+            historyPageTotalLabel.textContent = `/ ${historyTotalPages} 페이지`;
+            historyFirstBtn.disabled = historyPage <= 1;
+            historyPrevBtn.disabled = historyPage <= 1;
+            historyNextBtn.disabled = historyPage >= historyTotalPages;
+            historyLastBtn.disabled = historyPage >= historyTotalPages;
+        }
+
+        window.cancelActiveOrder = async (orderId) => {
+            if (!confirm(`주문 #${orderId} 을(를) 취소할까요?`)) return;
+            try {
+                const res = await fetchServerApi(`/api/orders/${orderId}`, {
+                    method: 'DELETE'
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    alert(json?.error?.message || '주문 취소에 실패했습니다.');
+                    return;
+                }
+                await Promise.all([
+                    refreshStrategiesAndAssets(),
+                    loadTradingHistory(historyPage)
+                ]);
+            } catch {
+                alert('주문 취소 요청 중 서버와 통신할 수 없습니다.');
+            }
+        };
+
+        document.querySelectorAll('[data-history-scope]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                historyScope = btn.dataset.historyScope;
+                document.querySelectorAll('[data-history-scope]').forEach(b => b.classList.toggle('active', b === btn));
+                loadTradingHistory(1);
+            });
+        });
+
+        historyStrategySelect.addEventListener('change', () => loadTradingHistory(1));
+        refreshHistoryBtn.addEventListener('click', () => loadTradingHistory(historyPage));
+        historyFirstBtn.addEventListener('click', () => loadTradingHistory(1));
+        historyPrevBtn.addEventListener('click', () => loadTradingHistory(historyPage - 1));
+        historyNextBtn.addEventListener('click', () => loadTradingHistory(historyPage + 1));
+        historyLastBtn.addEventListener('click', () => loadTradingHistory(historyTotalPages));
+        historyPageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const target = Math.max(1, Math.min(historyTotalPages, Math.floor(Number(historyPageInput.value) || 1)));
+                loadTradingHistory(target);
+            }
+        });
+        historyPageInput.addEventListener('change', () => {
+            const target = Math.max(1, Math.min(historyTotalPages, Math.floor(Number(historyPageInput.value) || 1)));
+            loadTradingHistory(target);
+        });
+
+        // Strategy Management
+        function renderStrategyCards() {
+            strategyGrid.innerHTML = '';
+            if (loadedStrategies.length === 0) {
+                strategyEmptyState.classList.remove('hidden');
+                return;
+            }
+            strategyEmptyState.classList.add('hidden');
+
+            loadedStrategies.forEach(s => {
+                const krw = computeStrategyMetrics([s], 'KRW');
+                const usd = computeStrategyMetrics([s], 'USD');
+                const holdingCount = (s.holdings || []).filter(h => Number(h.quantity) > 0).length;
+
+                const card = document.createElement('div');
+                card.className = 'strategy-card';
+                card.innerHTML = `
+                    <div class="strategy-card-top">
+                        <div>
+                            <div class="strategy-name">${escapeHtml(s.name)}</div>
+                            <div class="strategy-meta">전략 ID #${s.strategyId} · 생성 ${escapeHtml(formatKstDateTime(s.createdAtUtc))}</div>
+                        </div>
+                        <div style="display:flex; gap:0.35rem; align-items:center;">
+                            <button type="button" class="btn-outline btn-sm js-rename-strategy-btn">이름 수정</button>
+                            <button type="button" class="btn-danger-sm js-delete-strategy-btn">삭제</button>
+                        </div>
+                    </div>
+                    <div class="strategy-metrics">
+                        <div class="strategy-metric-box">
+                            <div class="strategy-metric-label">KRW 예수금 / 평가자산</div>
+                            <div class="strategy-metric-val">${formatMoney(krw.totalCash, 'KRW')} / ${formatMoney(krw.totalEval, 'KRW')}</div>
+                        </div>
+                        <div class="strategy-metric-box">
+                            <div class="strategy-metric-label">USD 예수금 / 평가자산</div>
+                            <div class="strategy-metric-val">${formatMoney(usd.totalCash, 'USD')} / ${formatMoney(usd.totalEval, 'USD')}</div>
+                        </div>
+                        <div class="strategy-metric-box">
+                            <div class="strategy-metric-label">누적 실현손익 (KRW · USD)</div>
+                            <div class="strategy-metric-val">${formatSignedMoney(krw.realizedPnl, 'KRW')} · ${formatSignedMoney(usd.realizedPnl, 'USD')}</div>
+                        </div>
+                        <div class="strategy-metric-box">
+                            <div class="strategy-metric-label">보유 종목 / 진행중 주문</div>
+                            <div class="strategy-metric-val">${holdingCount}종목 · ${Number(s.activeOrderCount || 0)}건</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                        <button type="button" class="btn-outline btn-sm js-focus-strategy-btn">자산·거래 보기</button>
+                    </div>
+                `;
+                card.querySelector('.js-rename-strategy-btn').addEventListener('click', () => renameStrategyPrompt(s.strategyId, s.name));
+                card.querySelector('.js-delete-strategy-btn').addEventListener('click', () => deleteStrategyPrompt(s));
+                card.querySelector('.js-focus-strategy-btn').addEventListener('click', () => focusStrategyInTab(s.strategyId, 'assets'));
+                strategyGrid.appendChild(card);
+            });
+        }
+
+        window.deleteStrategyPrompt = async (strategy) => {
+            if (!strategy) return;
+            const holdingCount = (strategy.holdings || []).filter(h => Number(h.quantity) > 0).length;
+            const activeOrders = Number(strategy.activeOrderCount || 0);
+
+            if (activeOrders > 0) {
+                setStatus(strategyStatusMsg, `'${strategy.name}' 전략에 체결 진행중인 주문(${activeOrders}건)이 남아 있어 삭제할 수 없습니다.`, false);
+                return;
+            }
+            if (holdingCount > 0) {
+                setStatus(strategyStatusMsg, `'${strategy.name}' 전략에 보유중인 종목(${holdingCount}종목)이 남아 있어 삭제할 수 없습니다.`, false);
+                return;
+            }
+
+            const krwWallet = (strategy.wallets || []).find(w => (w.currency || '').toUpperCase() === 'KRW');
+            const usdWallet = (strategy.wallets || []).find(w => (w.currency || '').toUpperCase() === 'USD');
+            const availKrw = Number(krwWallet?.availableCash || 0);
+            const availUsd = Number(usdWallet?.availableCash || 0);
+
+            let confirmMsg = `'${strategy.name}' 투자 전략을 삭제할까요?`;
+            if (availKrw > 0 || availUsd > 0) {
+                const reclaimParts = [];
+                if (availKrw > 0) reclaimParts.push(`KRW ${formatMoney(availKrw, 'KRW')}`);
+                if (availUsd > 0) reclaimParts.push(`USD ${formatMoney(availUsd, 'USD')}`);
+                confirmMsg += `\n\n전략에 남아 있는 가용 예수금(${reclaimParts.join(', ')})은 계정 통합 예수금으로 자동 회수됩니다.`;
+            }
+
+            if (!confirm(confirmMsg)) return;
+
+            setStatus(strategyStatusMsg, '');
+            try {
+                const res = await fetchServerApi(`/api/strategies/${encodeURIComponent(strategy.strategyId)}`, {
+                    method: 'DELETE'
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(strategyStatusMsg, json?.error?.message || '투자 전략 삭제에 실패했습니다.', false);
+                    return;
+                }
+
+                const data = json.data || {};
+                const reclaimedParts = [];
+                if (Number(data.reclaimedKrw || 0) > 0) reclaimedParts.push(`KRW ${formatMoney(data.reclaimedKrw, 'KRW')}`);
+                if (Number(data.reclaimedUsd || 0) > 0) reclaimedParts.push(`USD ${formatMoney(data.reclaimedUsd, 'USD')}`);
+                const reclaimSuffix = reclaimedParts.length > 0
+                    ? ` (통합 예수금 자동 회수: ${reclaimedParts.join(', ')})`
+                    : '';
+
+                setStatus(strategyStatusMsg, `'${strategy.name}' 투자 전략이 삭제되었습니다.${reclaimSuffix}`, true);
+                await Promise.all([
+                    refreshStrategiesAndAssets(),
+                    loadTradingHistory(1)
+                ]);
+            } catch {
+                setStatus(strategyStatusMsg, '서버와 통신할 수 없습니다.', false);
+            }
+        };
+
+        window.focusStrategyInTab = (strategyId, tabName) => {
+            assetStrategySelect.value = String(strategyId);
+            historyStrategySelect.value = String(strategyId);
+            renderAssetsSection();
+            loadTradingHistory(1);
+            activateMainTab(tabName);
+        };
+
+        window.renameStrategyPrompt = async (strategyId, currentName) => {
+            const nextName = prompt('새 투자 전략 이름을 입력하세요 (1~50자):', currentName || '');
+            if (nextName === null) return;
+            const trimmed = nextName.trim();
+            if (!trimmed || trimmed.length > 50) {
+                setStatus(strategyStatusMsg, '투자 전략 이름은 1~50자 사이로 입력해 주세요.', false);
+                return;
+            }
+
+            setStatus(strategyStatusMsg, '');
+            try {
+                const res = await fetchServerApi(`/api/strategies/${strategyId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: trimmed })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(strategyStatusMsg, json?.error?.message || '전략 이름 수정에 실패했습니다.', false);
+                    return;
+                }
+                setStatus(strategyStatusMsg, `'${trimmed}'(으)로 전략 이름을 변경했습니다.`, true);
+                await refreshStrategiesAndAssets();
+            } catch {
+                setStatus(strategyStatusMsg, '서버와 통신할 수 없습니다.', false);
+            }
+        };
+
+        createStrategyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = newStrategyNameInput.value.trim();
+            setStatus(strategyStatusMsg, '');
+            if (!name || name.length > 50) {
+                setStatus(strategyStatusMsg, '전략 이름은 1~50자 사이로 입력해 주세요.', false);
+                return;
+            }
+
+            createStrategyBtn.disabled = true;
+            try {
+                const res = await fetchServerApi('/api/strategies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(strategyStatusMsg, json?.error?.message || '투자 전략 생성에 실패했습니다.', false);
+                    return;
+                }
+                newStrategyNameInput.value = '';
+                setStatus(strategyStatusMsg, `새 투자 전략 '${json.data.name}'이(가) 생성되었습니다.`, true);
+                await refreshStrategiesAndAssets();
+            } catch {
+                setStatus(strategyStatusMsg, '서버와 통신할 수 없습니다.', false);
+            } finally {
+                createStrategyBtn.disabled = false;
+            }
+        });
+
+        // Nickname Update
+        nicknameForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nickname = editNicknameInput.value.trim();
+            setStatus(nicknameStatusMsg, '');
+            if (!nickname || nickname.length > 50) {
+                setStatus(nicknameStatusMsg, '닉네임은 1~50자 사이로 입력해 주세요.', false);
+                return;
+            }
+
+            saveNicknameBtn.disabled = true;
+            try {
+                const res = await fetchServerApi('/api/auth/me/nickname', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(nicknameStatusMsg, json?.error?.message || '닉네임 변경에 실패했습니다.', false);
+                    return;
+                }
+                currentProfile = json.data;
+                renderProfileBanner();
+                startSessionCountdown(currentProfile.sessionExpiresAtUtc);
+                setStatus(nicknameStatusMsg, '닉네임이 성공적으로 변경되었습니다.', true);
+            } catch {
+                setStatus(nicknameStatusMsg, '서버와 통신할 수 없습니다.', false);
+            } finally {
+                saveNicknameBtn.disabled = false;
+            }
+        });
+
+        // Password Change
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setStatus(passwordStatusMsg, '');
+            const currentPassword = currentPwInput.value;
+            const newPassword = newPwInput.value;
+            const confirmPassword = confirmPwInput.value;
+
+            if (!currentPassword) {
+                setStatus(passwordStatusMsg, '현재 비밀번호를 입력해 주세요.', false);
+                currentPwInput.focus();
+                return;
+            }
+            if (!evaluatePasswordRules(newPassword).valid) {
+                setStatus(passwordStatusMsg, '새 비밀번호가 생성 규칙을 충족하지 않습니다.', false);
+                newPwInput.focus();
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                setStatus(passwordStatusMsg, '새 비밀번호와 확인 입력이 일치하지 않습니다.', false);
+                confirmPwInput.focus();
+                return;
+            }
+
+            savePasswordBtn.disabled = true;
+            try {
+                const res = await fetchServerApi('/api/auth/me/password', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                if (!res) return;
+                const json = await res.json();
+                if (!res.ok || !json?.success) {
+                    setStatus(passwordStatusMsg, json?.error?.message || '비밀번호 변경에 실패했습니다.', false);
+                    return;
+                }
+                passwordForm.reset();
+                newPwInput.dispatchEvent(new Event('input'));
+                setStatus(passwordStatusMsg, '비밀번호가 안전하게 변경되었습니다.', true);
+            } catch {
+                setStatus(passwordStatusMsg, '서버와 통신할 수 없습니다.', false);
+            } finally {
+                savePasswordBtn.disabled = false;
+            }
+        });
+
+        // --- Real-Time Quote Modal Logic ---
+        const quoteModal = document.getElementById('quoteModal');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const btnToggleWatchlist = document.getElementById('btnToggleWatchlist');
+        const modalWatchlistNotice = document.getElementById('modalWatchlistNotice');
+        const btnTradeBuy = document.getElementById('btnTradeBuy');
+        const btnTradeSell = document.getElementById('btnTradeSell');
+        const modalStockName = document.getElementById('modalStockName');
+        const modalStockCode = document.getElementById('modalStockCode');
+        const modalMarketBadge = document.getElementById('modalMarketBadge');
+        const modalExchange = document.getElementById('modalExchange');
+        const modalCurrentPrice = document.getElementById('modalCurrentPrice');
+        const modalUpdatedAt = document.getElementById('modalUpdatedAt');
+        const modalChangeBadge = document.getElementById('modalChangeBadge');
+        const modalPriceChange = document.getElementById('modalPriceChange');
+        const modalChangeRate = document.getElementById('modalChangeRate');
+        const modalOpenPrice = document.getElementById('modalOpenPrice');
+        const modalHighPrice = document.getElementById('modalHighPrice');
+        const modalLowPrice = document.getElementById('modalLowPrice');
+        const modalBasePrice = document.getElementById('modalBasePrice');
+        const modalTradingValue = document.getElementById('modalTradingValue');
+        const modalVolume = document.getElementById('modalVolume');
+        const orderBookStatus = document.getElementById('orderBookStatus');
+        const orderBookList = document.getElementById('orderBookList');
+        const btnRefreshQuote = document.getElementById('btnRefreshQuote');
+
+        function syncRefreshButtonState() {
+            if (refreshCooldownTimer) {
+                clearTimeout(refreshCooldownTimer);
+                refreshCooldownTimer = null;
+            }
+            const remaining = QUOTE_COOLDOWN_MS - (Date.now() - lastQuoteFetchTime);
+            if (remaining > 0) {
+                const remainSec = Math.ceil(remaining / 1000);
+                const msg = `갱신까지 : ${remainSec}초`;
+                btnRefreshQuote.disabled = true;
+                btnRefreshQuote.removeAttribute('title');
+                btnRefreshQuote.setAttribute('data-tooltip', msg);
+                const nextTick = remaining % 1000 === 0 ? 1000 : (remaining % 1000) + 20;
+                refreshCooldownTimer = setTimeout(syncRefreshButtonState, nextTick);
+            } else {
+                btnRefreshQuote.disabled = false;
+                btnRefreshQuote.removeAttribute('title');
+                btnRefreshQuote.removeAttribute('data-tooltip');
+            }
+        }
+
+        function formatTradingValue(value, currency) {
+            const tradingVal = Number(value || 0);
+            if (tradingVal <= 0) return '-';
+            if (currency === 'USD') {
+                if (tradingVal >= 100000000) {
+                    return `$${(tradingVal / 100000000).toLocaleString(undefined, { maximumFractionDigits: 2 })}억`;
+                }
+                if (tradingVal >= 10000) {
+                    return `$${(tradingVal / 10000).toLocaleString(undefined, { maximumFractionDigits: 1 })}만`;
+                }
+                return `$${tradingVal.toLocaleString()}`;
+            }
+            return tradingVal >= 100000000
+                ? `₩${(tradingVal / 100000000).toLocaleString(undefined, { maximumFractionDigits: 0 })}억`
+                : `₩${tradingVal.toLocaleString()}`;
+        }
+
+        function formatBaseTime(input) {
+            if (input instanceof Date && !isNaN(input)) {
+                const hh = String(input.getHours()).padStart(2, '0');
+                const mm = String(input.getMinutes()).padStart(2, '0');
+                const ss = String(input.getSeconds()).padStart(2, '0');
+                return `${hh}:${mm}:${ss}`;
+            }
+            if (typeof input === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(input.trim())) {
+                return input.trim();
+            }
+            return null;
+        }
+
+        function renderOrderBook(status) {
+            const isUsd = status.currency === 'USD';
+            const currSign = isUsd ? '$' : '원';
+            const formatPrice = (p) => Number(p).toLocaleString(undefined, {
+                minimumFractionDigits: isUsd ? 2 : 0,
+                maximumFractionDigits: isUsd ? 4 : 0
+            });
+
+            orderBookStatus.textContent = `실시간 (${status.updatedTime})`;
+            orderBookList.innerHTML = '';
+
+            const asksReversed = [...(status.asks || [])].reverse();
+            asksReversed.forEach(level => {
+                const row = document.createElement('div');
+                row.className = 'orderbook-row orderbook-ask';
+                row.innerHTML = `
+                    <span>${Number(level.quantity).toLocaleString()}</span>
+                    <span style="text-align:center; font-weight:700;">${formatPrice(level.price)} ${currSign}</span>
+                    <span style="text-align:right; font-size:0.75rem;">매도</span>
+                `;
+                orderBookList.appendChild(row);
+            });
+
+            (status.bids || []).forEach(level => {
+                const row = document.createElement('div');
+                row.className = 'orderbook-row orderbook-bid';
+                row.innerHTML = `
+                    <span style="font-size:0.75rem;">매수</span>
+                    <span style="text-align:center; font-weight:700;">${formatPrice(level.price)} ${currSign}</span>
+                    <span style="text-align:right;">${Number(level.quantity).toLocaleString()}</span>
+                `;
+                orderBookList.appendChild(row);
+            });
+
+            if (asksReversed.length === 0 && (!status.bids || status.bids.length === 0)) {
+                orderBookList.innerHTML = '<div class="orderbook-empty">호가 데이터가 없습니다.</div>';
+            }
+
+            if (status.bids && status.bids.length > 0) {
+                const topBidPrice = status.bids[0].price;
+                modalCurrentPrice.textContent = isUsd ? `$${formatPrice(topBidPrice)}` : `${formatPrice(topBidPrice)} 원`;
+            }
+        }
+
+        function showModalWatchlistNotice(message, isSuccess = true) {
+            if (!modalWatchlistNotice) return;
+            if (!message) {
+                modalWatchlistNotice.textContent = '';
+                modalWatchlistNotice.classList.add('hidden');
+                return;
+            }
+            modalWatchlistNotice.textContent = message;
+            modalWatchlistNotice.style.color = isSuccess ? '#16a34a' : '#ef4444';
+            modalWatchlistNotice.classList.remove('hidden');
+        }
+
+        function syncModalWatchlistButtonUI(code) {
+            if (!btnToggleWatchlist) return;
+            const normCode = String(code || '').toUpperCase();
+            const isSaved = normCode && loadedWatchlist.some(w => String(w.stockCode || '').toUpperCase() === normCode);
+            btnToggleWatchlist.classList.toggle('active', Boolean(isSaved));
+            btnToggleWatchlist.textContent = isSaved ? '★ 관심종목 등록됨' : '☆ 관심종목 추가';
+        }
+
+        function closeQuoteModal() {
+            quoteModal.classList.remove('open');
+            if (refreshCooldownTimer) {
+                clearTimeout(refreshCooldownTimer);
+                refreshCooldownTimer = null;
+            }
+            if (currentModalCode && quoteHubConnection.state === signalR.HubConnectionState.Connected) {
+                quoteHubConnection.invoke('ReleaseStock', currentModalCode)
+                    .catch(err => console.error('[SignalR] 상세 모달 해제 오류:', err));
+            }
+            currentModalCode = null;
+        }
+
+        async function refreshQuoteWithCooldown() {
+            if (!currentModalCode || btnRefreshQuote.disabled) return;
+            const now = Date.now();
+            const elapsed = now - lastQuoteFetchTime;
+
+            if (elapsed < QUOTE_COOLDOWN_MS) {
+                syncRefreshButtonState();
+                return;
+            }
+
+            lastQuoteFetchTime = now;
+            syncRefreshButtonState();
+            await fetchQuoteData(currentModalCode);
+        }
+
+        btnRefreshQuote.addEventListener('click', refreshQuoteWithCooldown);
+        modalCloseBtn.addEventListener('click', closeQuoteModal);
+
+        btnToggleWatchlist.addEventListener('click', async () => {
+            if (!currentModalCode) return;
+            const normCode = currentModalCode.toUpperCase();
+            const isCurrentlySaved = loadedWatchlist.some(w => String(w.stockCode || '').toUpperCase() === normCode);
+            btnToggleWatchlist.disabled = true;
+            showModalWatchlistNotice('');
+
+            try {
+                if (isCurrentlySaved) {
+                    const res = await fetchServerApi(`/api/watchlist/${encodeURIComponent(normCode)}`, {
+                        method: 'DELETE'
+                    });
+                    if (!res) return;
+                    const json = await res.json().catch(() => null);
+                    if (!res.ok || !json?.success) {
+                        showModalWatchlistNotice(json?.error?.message || '관심종목 해제에 실패했습니다.', false);
+                        return;
+                    }
+                    await loadWatchlist();
+                    syncModalWatchlistButtonUI(normCode);
+                    showModalWatchlistNotice('관심종목에서 해제되었습니다.', true);
+                } else {
+                    const res = await fetchServerApi('/api/watchlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stockCode: normCode })
+                    });
+                    if (!res) return;
+                    const json = await res.json().catch(() => null);
+                    if (!res.ok || !json?.success) {
+                        showModalWatchlistNotice(json?.error?.message || '관심종목 등록에 실패했습니다.', false);
+                        return;
+                    }
+                    await loadWatchlist();
+                    syncModalWatchlistButtonUI(normCode);
+                    showModalWatchlistNotice(`'${json.data?.stockName || normCode}' 종목이 관심종목에 등록되었습니다.`, true);
+                }
+            } catch {
+                showModalWatchlistNotice('서버와 통신할 수 없습니다.', false);
+            } finally {
+                btnToggleWatchlist.disabled = false;
+            }
+        });
+
+        function handleTradeButtonClick(sideLabel) {
+            if (loadedStrategies.length === 0) {
+                alert('등록된 투자 전략이 없습니다. 거래는 투자 전략을 기반으로 이루어지므로 투자 전략 관리 탭에서 전략을 먼저 생성해 주세요.');
+                return;
+            }
+            alert(`가상 ${sideLabel} 주문 기능은 3단계 모의투자 체결 엔진에서 연동됩니다!`);
+        }
+
+        btnTradeBuy.addEventListener('click', () => handleTradeButtonClick('매수'));
+        btnTradeSell.addEventListener('click', () => handleTradeButtonClick('매도'));
+
+        quoteModal.addEventListener('click', (e) => {
+            if (e.target === quoteModal) closeQuoteModal();
+        });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && quoteModal.classList.contains('open')) closeQuoteModal();
+        });
+
+        async function openQuoteModal(code) {
+            if (!code) return;
+            const normCode = String(code).trim().toUpperCase();
+            currentModalCode = normCode;
+
+            quoteModal.classList.add('open');
+            showModalWatchlistNotice('');
+            syncModalWatchlistButtonUI(normCode);
+
+            const watchItem = loadedWatchlist.find(w => String(w.stockCode || '').toUpperCase() === normCode);
+            const cachedQuote = liveQuoteByCode.get(normCode);
+
+            modalStockName.textContent = cachedQuote?.stockName || watchItem?.stockName || "실시간 시세 조회 중...";
+            modalStockCode.textContent = normCode;
+            modalMarketBadge.textContent = cachedQuote?.marketType || watchItem?.marketType || "...";
+            modalExchange.textContent = cachedQuote?.exchangeCode || watchItem?.exchangeCode || "";
+            modalCurrentPrice.textContent = "불러오는 중...";
+            modalCurrentPrice.style.color = "var(--text-primary)";
+            modalUpdatedAt.textContent = "증권사 실시간 체결 데이터 요청 중...";
+            modalChangeBadge.className = "modal-change-badge badge-flat";
+            modalPriceChange.textContent = "-";
+            modalChangeRate.textContent = "";
+            modalOpenPrice.textContent = "-";
+            modalHighPrice.textContent = "-";
+            modalLowPrice.textContent = "-";
+            modalBasePrice.textContent = "-";
+            modalTradingValue.textContent = "-";
+            modalVolume.textContent = "-";
+            orderBookStatus.textContent = "실시간 소켓 등록 요청 중...";
+            orderBookList.innerHTML = '<div class="orderbook-empty">실시간 호가 수신 대기 중...</div>';
+
+            if (!hasValidKisKey) {
+                if (watchItem) {
+                    const isUsd = watchItem.currency === 'USD';
+                    const currSign = isUsd ? '$' : '원';
+                    const formattedBase = Number(watchItem.basePrice || 0).toLocaleString(undefined, {
+                        minimumFractionDigits: isUsd ? 2 : 0,
+                        maximumFractionDigits: isUsd ? 4 : 0
+                    });
+                    modalCurrentPrice.textContent = isUsd ? `$${formattedBase}` : `${formattedBase} 원`;
+                    modalBasePrice.textContent = `${formattedBase} ${currSign}`;
+                } else {
+                    modalCurrentPrice.textContent = "-";
+                }
+                modalUpdatedAt.textContent = "마스터 기준가 표시 중 (실시간 시세는 KIS API 연동 필요)";
+                orderBookStatus.textContent = 'KIS API 연동 필요';
+                orderBookList.innerHTML = '<div class="orderbook-empty">실시간 시세와 호가는 대시보드에서 KIS API 연동 후 이용할 수 있습니다.</div>';
+                return;
+            }
+
+            lastQuoteFetchTime = Date.now();
+            syncRefreshButtonState();
+            await fetchQuoteData(normCode);
+
+            if (currentModalCode !== normCode) return;
+
+            try {
+                const connected = await ensureQuoteHubConnected();
+                if (currentModalCode !== normCode) return;
+
+                if (connected) {
+                    await quoteHubConnection.invoke('RegisterStock', normCode);
+                } else {
+                    orderBookStatus.textContent = "실시간 소켓 연결 대기 중";
+                }
+            } catch (err) {
+                console.error('[SignalR] 상세 종목 등록 요청 오류:', err);
+                orderBookStatus.textContent = "실시간 소켓 연결 실패";
+            }
+        }
+
+        async function fetchQuoteData(code) {
+            try {
+                const res = await fetch(`/api/stocks/${encodeURIComponent(code)}/quote`);
+                const json = await res.json();
+                if (currentModalCode !== code) return;
+
+                if (!json.success || !json.data) {
+                    modalStockName.textContent = "시세 조회 실패";
+                    modalCurrentPrice.textContent = "데이터 없음";
+                    const errMsg = (json.error && json.error.message) ? json.error.message : "시세를 가져올 수 없습니다.";
+                    modalUpdatedAt.textContent = errMsg;
+                    return;
+                }
+
+                const q = json.data;
+                const existing = liveQuoteByCode.get(code.toUpperCase());
+                liveQuoteByCode.set(code.toUpperCase(), {
+                    ...q,
+                    isWebSocketLive: Boolean(existing?.isWebSocketLive)
+                });
+                renderWatchlist();
+
+                const isUsd = q.currency === 'USD';
+                const formatNum = (num, minDec = isUsd ? 2 : 0, maxDec = isUsd ? 4 : 0) =>
+                    Number(num).toLocaleString(undefined, { minimumFractionDigits: minDec, maximumFractionDigits: maxDec });
+
+                modalStockName.textContent = q.stockName;
+                modalStockCode.textContent = q.stockCode;
+                modalMarketBadge.textContent = q.marketType;
+                modalExchange.textContent = q.exchangeCode;
+
+                const currSign = isUsd ? '$' : '￦';
+                modalCurrentPrice.textContent = isUsd ? `$${formatNum(q.currentPrice)}` : `${formatNum(q.currentPrice)} 원`;
+
+                const change = Number(q.priceChange);
+                const rate = Number(q.changeRate);
+                const absRate = Math.abs(rate).toFixed(2);
+                const isUp = rate > 0 || (rate === 0 && change > 0);
+                const isDown = rate < 0 || (rate === 0 && change < 0);
+
+                if (isUp) {
+                    modalCurrentPrice.style.color = "#ef4444";
+                    modalChangeBadge.className = "modal-change-badge badge-up";
+                    modalPriceChange.textContent = `▲ ${formatNum(Math.abs(change))}${currSign}`;
+                    modalChangeRate.textContent = `(+${absRate}%)`;
+                } else if (isDown) {
+                    modalCurrentPrice.style.color = "#3b82f6";
+                    modalChangeBadge.className = "modal-change-badge badge-down";
+                    modalPriceChange.textContent = `▼ ${formatNum(Math.abs(change))}${currSign}`;
+                    modalChangeRate.textContent = `(-${absRate}%)`;
+                } else {
+                    modalCurrentPrice.style.color = "var(--text-primary)";
+                    modalChangeBadge.className = "modal-change-badge badge-flat";
+                    modalPriceChange.textContent = `0 ${currSign}`;
+                    modalChangeRate.textContent = `(0.00%)`;
+                }
+
+                modalOpenPrice.textContent = `${formatNum(q.openPrice)} ${currSign}`;
+                modalHighPrice.textContent = `${formatNum(q.highPrice)} ${currSign}`;
+                modalLowPrice.textContent = `${formatNum(q.lowPrice)} ${currSign}`;
+                modalBasePrice.textContent = `${formatNum(q.basePrice)} ${currSign}`;
+                modalTradingValue.textContent = formatTradingValue(q.tradingValue, q.currency);
+                modalVolume.textContent = `${Number(q.volume).toLocaleString()} 주`;
+
+                const updatedDate = new Date(q.updatedAtUtc);
+                const formattedBaseTime = formatBaseTime(updatedDate) || formatBaseTime(new Date());
+                modalUpdatedAt.textContent = `기준 시각 : ${formattedBaseTime}`;
+            } catch (err) {
+                console.error("시세 조회 오류:", err);
+            }
+        }
+
         initTheme();
-        loadProfile();
+        loadProfileAndKis();
     </script>
 </body>
 </html>

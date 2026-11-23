@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
@@ -62,6 +63,9 @@ if (!string.IsNullOrWhiteSpace(connectionString))
     builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 }
 
+var sessionStore = new InMemorySessionStore();
+builder.Services.AddSingleton(sessionStore);
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -69,6 +73,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Events.OnValidatePrincipal = async ctx =>
+        {
+            var sid = ctx.Principal?.FindFirst("sid")?.Value;
+            if (!sessionStore.Validate(sid))
+            {
+                ctx.RejectPrincipal();
+                await ctx.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+        };
         options.Events.OnRedirectToLogin = ctx =>
         {
             ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;

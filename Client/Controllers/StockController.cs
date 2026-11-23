@@ -102,12 +102,27 @@ public class StockController : ControllerBase
         return Ok(ApiResponse<PagedResult<StockMasterItem>>.Ok(paged));
     }
 
-    // 6. 전체 마스터 캐시 스냅샷 조회 (클라이언트 전체 종목 정렬/페이징용)
+    // 6. 전체 마스터 캐시 스냅샷 조회 (ETag/If-None-Match 기반 304 지원: 변동 시에만 전체 전송)
     [HttpGet("snapshot")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<StockMasterItem>>>> GetSnapshot(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetSnapshot(CancellationToken cancellationToken = default)
     {
-        var snapshot = await _masterProvider.GetSnapshotAsync(cancellationToken);
-        return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(snapshot));
+        var ifNoneMatch = Request.Headers.IfNoneMatch.FirstOrDefault();
+        var state = await _masterProvider.GetSnapshotStateAsync(ifNoneMatch, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(state.ETag))
+        {
+            Response.Headers.ETag = state.ETag;
+        }
+        Response.Headers["X-Master-Version"] = state.MasterVersion.ToString();
+        Response.Headers["X-Master-Synced-At"] = state.MasterSyncedAtUtc.ToString("O");
+        Response.Headers.CacheControl = "no-cache";
+
+        if (state.NotModified)
+        {
+            return StatusCode(StatusCodes.Status304NotModified);
+        }
+
+        return Ok(ApiResponse<IReadOnlyList<StockMasterItem>>.Ok(state.Items));
     }
 }
 

@@ -1,6 +1,6 @@
 namespace StockLab.Persistence.Entities;
 
-public class Scenario
+public class Strategy
 {
     public long Id { get; set; }
     public long Uid { get; set; }

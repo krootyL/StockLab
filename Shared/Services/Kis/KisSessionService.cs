@@ -1,4 +1,7 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
@@ -15,8 +18,8 @@ public class KisSessionService
     private readonly KisSettings _settings;
     private readonly ILogger<KisSessionService> _logger;
 
-    private const string CacheKey = "KIS_ACCESS_TOKEN";
-    private static string _approvalKey = string.Empty;
+    private const string CacheKeyPrefix = "KIS_ACCESS_TOKEN:";
+    private static readonly ConcurrentDictionary<string, string> _approvalKeys = new(StringComparer.Ordinal);
     private static readonly TimeSpan SafeBufferTime = TimeSpan.FromMinutes(10);
     private static readonly string TokenFilePath = Path.Combine(AppContext.BaseDirectory, ".kis_token.json");
 
@@ -32,7 +35,36 @@ public class KisSessionService
         _logger = logger;
     }
 
+    private static string GetAppKeyHash(string appKey)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(appKey));
+        return Convert.ToHexString(hash)[..16];
+    }
+
+    public void SeedToken(string appKey, string token, DateTime expiresAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(appKey) || string.IsNullOrWhiteSpace(token)) return;
+        var localExpiry = expiresAtUtc.Kind == DateTimeKind.Utc ? expiresAtUtc.ToLocalTime() : expiresAtUtc;
+        SetMemoryCache(appKey, token, localExpiry);
+    }
+
+    public void ClearCachedToken(string? appKey = null)
+    {
+        var target = string.IsNullOrWhiteSpace(appKey) ? _settings.AppKey : appKey;
+        if (!string.IsNullOrWhiteSpace(target))
+        {
+            _cache.Remove($"{CacheKeyPrefix}{target}");
+            _approvalKeys.TryRemove(target, out _);
+        }
+    }
+
     public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default)
+    {
+        var (token, _) = await GetAccessTokenWithExpiryAsync(cancellationToken);
+        return token;
+    }
+
+    public async Task<(string AccessToken, DateTime ExpiresAtUtc)> GetAccessTokenWithExpiryAsync(CancellationToken cancellationToken = default)
     {
         // 0. 설정값 최우선 검증 (키 누락 시 메모리/파일 캐시 토큰 재사용도 전면 차단)
         if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
@@ -40,19 +72,22 @@ public class KisSessionService
             throw new StockLabException(ErrorCode.KisConfigMissing, "로컬 KIS OpenAPI AppKey 또는 AppSecret이 설정되지 않아 접근이 제한됩니다.");
         }
 
+        var cacheKey = $"{CacheKeyPrefix}{_settings.AppKey}";
+
         // 1. 메모리 캐시 확인
-        if (_cache.TryGetValue(CacheKey, out string? cachedToken) && !string.IsNullOrWhiteSpace(cachedToken))
+        if (_cache.TryGetValue(cacheKey, out CachedTokenEntry? cachedEntry) && cachedEntry != null && !string.IsNullOrWhiteSpace(cachedEntry.Token))
         {
-            return cachedToken;
+            return (cachedEntry.Token, cachedEntry.ExpiresAtUtc);
         }
 
-        // 2. 파일 캐시 확인 (서버 재실행 시 복원)
-        var (loaded, fileToken, fileExpiresAt) = await TryLoadTokenFromFileAsync(cancellationToken);
+        // 2. 파일 캐시 확인 (동일 AppKey 해시일 때만 복원)
+        var keyHash = GetAppKeyHash(_settings.AppKey);
+        var (loaded, fileToken, fileExpiresAt) = await TryLoadTokenFromFileAsync(keyHash, cancellationToken);
         if (loaded)
         {
-            SetMemoryCache(fileToken, fileExpiresAt);
+            SetMemoryCache(_settings.AppKey, fileToken, fileExpiresAt);
             _logger.LogInformation("[파일 캐시] 저장된 .kis_token.json 파일에서 토큰 복원 완료 (만료 예정: {ExpiresAt:yyyy-MM-dd HH:mm:ss})", fileExpiresAt);
-            return fileToken;
+            return (fileToken, fileExpiresAt.ToUniversalTime());
         }
 
         // 3. 증권사 신규 발급 요청
@@ -102,12 +137,12 @@ public class KisSessionService
             expiresAt = DateTime.Now.AddSeconds(tokenResponse.ExpiresIn);
         }
 
-        SetMemoryCache(tokenResponse.AccessToken, expiresAt);
-        await SaveTokenToFileAsync(tokenResponse.AccessToken, expiresAt, cancellationToken);
+        SetMemoryCache(_settings.AppKey, tokenResponse.AccessToken, expiresAt);
+        await SaveTokenToFileAsync(keyHash, tokenResponse.AccessToken, expiresAt, cancellationToken);
 
         _logger.LogInformation("{Prefix} 신규 접근 토큰 확보 완료 (만료 예정: {ExpiresAt:yyyy-MM-dd HH:mm:ss})", LogConstants.KisApiPrefix, expiresAt);
 
-        return tokenResponse.AccessToken;
+        return (tokenResponse.AccessToken, expiresAt.ToUniversalTime());
     }
 
     public async Task<string> GetWebSocketApprovalKeyAsync(CancellationToken cancellationToken = default)
@@ -117,9 +152,9 @@ public class KisSessionService
             throw new StockLabException(ErrorCode.KisConfigMissing, "로컬 KIS OpenAPI AppKey 또는 AppSecret이 설정되지 않아 접근이 제한됩니다.");
         }
 
-        if (!string.IsNullOrWhiteSpace(_approvalKey))
+        if (_approvalKeys.TryGetValue(_settings.AppKey, out var cachedApproval) && !string.IsNullOrWhiteSpace(cachedApproval))
         {
-            return _approvalKey;
+            return cachedApproval;
         }
 
         _logger.LogInformation("{Prefix} 실시간 WebSocket 접속키(Approval Key) 발급 요청 (POST /oauth2/Approval)", LogConstants.KisApiPrefix);
@@ -149,21 +184,23 @@ public class KisSessionService
             throw new StockLabException(ErrorCode.KisAuthFailed, "KIS WebSocket 접속키 응답 데이터가 올바르지 않습니다.");
         }
 
-        _approvalKey = keyElement.GetString()!;
+        var issuedApprovalKey = keyElement.GetString()!;
+        _approvalKeys[_settings.AppKey] = issuedApprovalKey;
         _logger.LogInformation("{Prefix} WebSocket 접속키 발급 완료", LogConstants.KisApiPrefix);
-        return _approvalKey;
+        return issuedApprovalKey;
     }
 
-    private void SetMemoryCache(string token, DateTime expiresAt)
+    private void SetMemoryCache(string appKey, string token, DateTime expiresAtLocal)
     {
-        var safeExpiry = expiresAt - SafeBufferTime;
+        var safeExpiry = expiresAtLocal - SafeBufferTime;
         if (safeExpiry > DateTime.Now)
         {
-            _cache.Set(CacheKey, token, safeExpiry);
+            var entry = new CachedTokenEntry(token, expiresAtLocal.ToUniversalTime());
+            _cache.Set($"{CacheKeyPrefix}{appKey}", entry, safeExpiry);
         }
     }
 
-    private async Task<(bool Success, string Token, DateTime ExpiresAt)> TryLoadTokenFromFileAsync(CancellationToken cancellationToken)
+    private async Task<(bool Success, string Token, DateTime ExpiresAt)> TryLoadTokenFromFileAsync(string keyHash, CancellationToken cancellationToken)
     {
         if (!File.Exists(TokenFilePath)) return (false, string.Empty, DateTime.MinValue);
 
@@ -171,7 +208,9 @@ public class KisSessionService
         {
             var json = await File.ReadAllTextAsync(TokenFilePath, cancellationToken);
             var diskToken = JsonSerializer.Deserialize<DiskTokenInfo>(json);
-            if (diskToken != null && (diskToken.ExpiresAt - SafeBufferTime) > DateTime.Now)
+            if (diskToken != null
+                && string.Equals(diskToken.AppKeyHash, keyHash, StringComparison.Ordinal)
+                && (diskToken.ExpiresAt - SafeBufferTime) > DateTime.Now)
             {
                 return (true, diskToken.AccessToken, diskToken.ExpiresAt);
             }
@@ -184,11 +223,11 @@ public class KisSessionService
         return (false, string.Empty, DateTime.MinValue);
     }
 
-    private async Task SaveTokenToFileAsync(string token, DateTime expiresAt, CancellationToken cancellationToken)
+    private async Task SaveTokenToFileAsync(string keyHash, string token, DateTime expiresAt, CancellationToken cancellationToken)
     {
         try
         {
-            var data = new DiskTokenInfo(token, expiresAt);
+            var data = new DiskTokenInfo(token, expiresAt, keyHash);
             var json = JsonSerializer.Serialize(data);
             await File.WriteAllTextAsync(TokenFilePath, json, cancellationToken);
         }
@@ -205,5 +244,6 @@ public class KisSessionService
         [property: JsonPropertyName("access_token_token_expired")] string AccessTokenTokenExpired
     );
 
-    private record DiskTokenInfo(string AccessToken, DateTime ExpiresAt);
+    private record CachedTokenEntry(string Token, DateTime ExpiresAtUtc);
+    private record DiskTokenInfo(string AccessToken, DateTime ExpiresAt, string? AppKeyHash = null);
 }

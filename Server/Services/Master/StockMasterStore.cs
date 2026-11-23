@@ -6,7 +6,13 @@ using StockLab.Dtos;
 
 namespace StockLab.Services.Master;
 
-public sealed record PreSerializedSnapshot(byte[] JsonBytes, byte[] GzipBytes, string ETag, DateTime ExpiresAtUtc);
+public sealed record PreSerializedSnapshot(
+    byte[] JsonBytes,
+    byte[] GzipBytes,
+    string ETag,
+    long MasterVersion,
+    DateTime MasterSyncedAtUtc,
+    DateTime ExpiresAtUtc);
 
 public class StockMasterStore : IStockMasterProvider
 {
@@ -19,6 +25,8 @@ public class StockMasterStore : IStockMasterProvider
     private PreSerializedSnapshot? _cachedSnapshot;
     private int _snapshotDirty = 1;
     private long _snapshotVersion;
+    private long _masterVersion;
+    private DateTime _masterSyncedAtUtc = DateTime.UtcNow;
 
     public StockMasterItem? TryGetCachedByCode(string code) => GetByCode(code);
 
@@ -52,6 +60,28 @@ public class StockMasterStore : IStockMasterProvider
 
     public ValueTask<IReadOnlyList<StockMasterItem>> GetSnapshotAsync(CancellationToken cancellationToken = default)
         => ValueTask.FromResult<IReadOnlyList<StockMasterItem>>(_byCode.Values.ToList());
+
+    public ValueTask<StockMasterSnapshotResult> GetSnapshotStateAsync(string? ifNoneMatchETag = null, CancellationToken cancellationToken = default)
+    {
+        var snap = GetSerializedSnapshot();
+        if (!string.IsNullOrWhiteSpace(ifNoneMatchETag) &&
+            string.Equals(ifNoneMatchETag.Trim(), snap.ETag, StringComparison.Ordinal))
+        {
+            return ValueTask.FromResult(new StockMasterSnapshotResult(
+                Array.Empty<StockMasterItem>(),
+                snap.ETag,
+                snap.MasterVersion,
+                snap.MasterSyncedAtUtc,
+                NotModified: true));
+        }
+
+        return ValueTask.FromResult(new StockMasterSnapshotResult(
+            _byCode.Values.ToList(),
+            snap.ETag,
+            snap.MasterVersion,
+            snap.MasterSyncedAtUtc,
+            NotModified: false));
+    }
 
     /// <summary>
     /// 고정 주기(30초 TTL) + 변경 감지(_snapshotDirty) 기반으로 사전 직렬화된 JSON/Gzip 스냅샷을 반환한다.
@@ -107,8 +137,10 @@ public class StockMasterStore : IStockMasterProvider
             }
 
             var version = Interlocked.Increment(ref _snapshotVersion);
-            var etag = $"\"master-{items.Count}-{version}\"";
-            var rebuilt = new PreSerializedSnapshot(jsonBytes, gzipBytes, etag, now.Add(SnapshotTtl));
+            var masterVer = Interlocked.Read(ref _masterVersion);
+            var syncedAt = _masterSyncedAtUtc;
+            var etag = $"\"master-v{masterVer}-{items.Count}-{version}\"";
+            var rebuilt = new PreSerializedSnapshot(jsonBytes, gzipBytes, etag, masterVer, syncedAt, now.Add(SnapshotTtl));
             Volatile.Write(ref _cachedSnapshot, rebuilt);
             return rebuilt;
         }
@@ -165,27 +197,37 @@ public class StockMasterStore : IStockMasterProvider
 
     public void Initialize(IEnumerable<StockMasterItem> items)
     {
+        var now = DateTime.UtcNow;
         var newDict = new ConcurrentDictionary<string, StockMasterItem>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var item in items)
         {
-            newDict[item.ShortCode] = item;
+            newDict[item.ShortCode] = item.UpdatedAtUtc.HasValue
+                ? item
+                : item with { UpdatedAtUtc = now };
         }
 
-        // 메모리 참조를 원자적으로 교체하고 기존 스냅샷 캐시는 유지한 채 갱신 플래그만 표시
+        // 메모리 참조를 원자적으로 교체하고 마스터 버전/시각 및 스냅샷 갱신 플래그를 표시
         Interlocked.Exchange(ref _byCode, newDict);
+        Interlocked.Increment(ref _masterVersion);
+        _masterSyncedAtUtc = now;
         Volatile.Write(ref _snapshotDirty, 1);
     }
 
-    // 실시간 호가/시세 수신 시 디스크 마스터 파일은 유지하고 인메모리 DB 가격만 덮어쓰기
+    // 실시간 호가/시세 수신 시 디스크 마스터 파일은 유지하고 인메모리 DB 가격 및 갱신 시각만 덮어쓰기
     public void UpdatePrice(string code, decimal newPrice)
     {
         if (string.IsNullOrWhiteSpace(code) || newPrice <= 0) return;
 
         var trimmed = code.Trim();
+        var now = DateTime.UtcNow;
         if (_byCode.TryGetValue(trimmed, out var existing))
         {
-            _byCode[trimmed] = existing with { BasePrice = newPrice };
+            if (existing.UpdatedAtUtc.HasValue && existing.UpdatedAtUtc.Value > now)
+            {
+                return;
+            }
+            _byCode[trimmed] = existing with { BasePrice = newPrice, UpdatedAtUtc = now };
             Volatile.Write(ref _snapshotDirty, 1);
         }
     }

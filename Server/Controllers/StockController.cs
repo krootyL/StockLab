@@ -129,19 +129,21 @@ public class StockController : ControllerBase
         return Ok(ApiResponse<PagedResult<StockMasterItem>>.Ok(paged));
     }
 
-    // 2-4. 전체 마스터 캐시 스냅샷 조회 (TTL 사전 직렬화 JSON/Gzip + ETag 지원): GET /api/stocks/snapshot
+    // 2-4. 전체 마스터 캐시 스냅샷 조회 (사전 직렬화 JSON/Gzip + ETag/MasterVersion 기반 304 지원): GET /api/stocks/snapshot
     [HttpGet("snapshot")]
     public IActionResult GetSnapshot()
     {
         var snapshot = _store.GetSerializedSnapshot();
 
-        if (Request.Headers.IfNoneMatch.Any(v => string.Equals(v, snapshot.ETag, StringComparison.Ordinal)))
+        Response.Headers.ETag = snapshot.ETag;
+        Response.Headers["X-Master-Version"] = snapshot.MasterVersion.ToString();
+        Response.Headers["X-Master-Synced-At"] = snapshot.MasterSyncedAtUtc.ToString("O");
+        Response.Headers.CacheControl = "no-cache";
+
+        if (Request.Headers.IfNoneMatch.Any(v => string.Equals(v?.Trim(), snapshot.ETag, StringComparison.Ordinal)))
         {
             return StatusCode(StatusCodes.Status304NotModified);
         }
-
-        Response.Headers.ETag = snapshot.ETag;
-        Response.Headers.CacheControl = "public, max-age=60";
 
         var acceptEncoding = Request.Headers.AcceptEncoding.ToString();
         if (acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))

@@ -194,7 +194,7 @@ public class KisRankingService
                 return null;
             }
 
-            var topItems = rankResult.Output.Take(50).ToList();
+            var topItems = rankResult.Output.Take(30).ToList();
             var masterMap = await _store.GetByCodesAsync(topItems.Select(x => x.StockCode), ct);
             var list = new List<PopularStockItem>(topItems.Count);
             int rank = 1;
@@ -341,7 +341,7 @@ public class KisRankingService
             var list = new List<PopularStockItem>(rankResult.Output.Count);
             int rank = 1;
 
-            var topItems = rankResult.Output.Take(50).ToList();
+            var topItems = rankResult.Output.Take(30).ToList();
             var tickers = topItems
                 .Select(x => string.IsNullOrWhiteSpace(x.Symbol) ? x.RealSymbol : x.Symbol)
                 .Where(t => !string.IsNullOrWhiteSpace(t));
@@ -518,7 +518,7 @@ public class KisRankingService
 
     private async Task<IReadOnlyList<PopularStockItem>> GetKonexPopularStocksAsync(CancellationToken cancellationToken)
     {
-        var items = await _store.GetByMarketAsync("KONEX", 50, cancellationToken);
+        var items = await _store.GetByMarketAsync("KONEX", 30, cancellationToken);
         return items
             .Select((master, idx) => new PopularStockItem(
                 Rank: idx + 1,

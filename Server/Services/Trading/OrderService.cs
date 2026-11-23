@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using StockLab.BackgroundServices;
 using StockLab.Common;
@@ -55,13 +55,30 @@ public class OrderService
         var master = _masterStore.GetByCode(request.StockCode)
             ?? throw new StockLabException(ErrorCode.StockNotFound, $"종목코드 '{request.StockCode}'를 찾을 수 없습니다.");
 
-        var scenario = await _db.Scenarios
+        var userStrategies = await _db.Strategies
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == request.ScenarioId && s.Uid == uid, ct);
+            .Where(s => s.Uid == uid)
+            .Select(s => new { s.Id, s.Name })
+            .ToListAsync(ct);
 
-        if (scenario == null)
+        if (userStrategies.Count == 0)
         {
-            throw new StockLabException(ErrorCode.Forbidden, "해당 시나리오에 대한 접근 권한이 없습니다.");
+            throw new StockLabException(
+                ErrorCode.InvalidInput,
+                "등록된 투자 전략이 없습니다. 거래는 투자 전략을 기반으로 이루어지므로 마이페이지에서 투자 전략을 먼저 생성해 주세요.");
+        }
+
+        if (request.StrategyId <= 0)
+        {
+            throw new StockLabException(
+                ErrorCode.InvalidInput,
+                "주문을 진행할 투자 전략을 선택해 주세요.");
+        }
+
+        var strategy = userStrategies.FirstOrDefault(s => s.Id == request.StrategyId);
+        if (strategy == null)
+        {
+            throw new StockLabException(ErrorCode.Forbidden, "해당 투자 전략에 대한 접근 권한이 없거나 존재하지 않는 전략입니다.");
         }
 
         decimal resolvedPrice;
@@ -89,7 +106,7 @@ public class OrderService
         {
             var wallet = await _db.Wallets
                 .FromSqlInterpolated(
-                    $"SELECT *, xmin FROM wallets WHERE \"ScenarioId\" = {request.ScenarioId} AND \"Currency\" = {master.Currency} FOR UPDATE")
+                    $"SELECT *, xmin FROM wallets WHERE \"StrategyId\" = {request.StrategyId} AND \"Currency\" = {master.Currency} FOR UPDATE")
                 .FirstOrDefaultAsync(ct);
 
             if (wallet == null)
@@ -112,7 +129,7 @@ public class OrderService
         {
             var holding = await _db.Stocks
                 .FromSqlInterpolated(
-                    $"SELECT *, xmin FROM stocks WHERE \"ScenarioId\" = {request.ScenarioId} AND \"StockCode\" = {master.ShortCode} FOR UPDATE")
+                    $"SELECT *, xmin FROM stocks WHERE \"StrategyId\" = {request.StrategyId} AND \"StockCode\" = {master.ShortCode} FOR UPDATE")
                 .FirstOrDefaultAsync(ct);
 
             var sellableQty = holding == null ? 0 : holding.Quantity - holding.ReservedQuantity;
@@ -129,7 +146,7 @@ public class OrderService
 
         var order = new Order
         {
-            ScenarioId = request.ScenarioId,
+            StrategyId = request.StrategyId,
             Uid = uid,
             StockCode = master.ShortCode,
             Side = request.Side,
@@ -148,8 +165,8 @@ public class OrderService
         _pendingList.UpsertOrder(order);
 
         _logger.LogInformation(
-            "[주문 접수] OrderId={OrderId}, UID={Uid}, ScenarioId={ScenarioId}, Stock={Stock}, Side={Side}, Type={Type}, Price={Price}, Qty={Qty}",
-            order.OrderId, uid, request.ScenarioId, master.ShortCode, request.Side, request.OrderType, resolvedPrice, request.Quantity);
+            "[주문 접수] OrderId={OrderId}, UID={Uid}, StrategyId={StrategyId}, Stock={Stock}, Side={Side}, Type={Type}, Price={Price}, Qty={Qty}",
+            order.OrderId, uid, request.StrategyId, master.ShortCode, request.Side, request.OrderType, resolvedPrice, request.Quantity);
 
         var cachedOrderBook = _socketService.GetCachedOrderBook(master.ShortCode);
         if (cachedOrderBook != null)
@@ -171,14 +188,14 @@ public class OrderService
         => CancelOrderCoreAsync(null, orderId, ct);
 
     public Task<BulkCancelOrdersResult> CancelPendingOrdersAsAdminAsync(
-        long? scenarioId = null,
+        long? strategyId = null,
         string? stockCode = null,
         CancellationToken ct = default)
-        => CancelOpenOrdersCoreAsync(null, scenarioId, stockCode, ct);
+        => CancelOpenOrdersCoreAsync(null, strategyId, stockCode, ct);
 
     private async Task<BulkCancelOrdersResult> CancelOpenOrdersCoreAsync(
         long? expectedUid,
-        long? scenarioId,
+        long? strategyId,
         string? stockCode,
         CancellationToken ct)
     {
@@ -193,9 +210,9 @@ public class OrderService
             preCheckQuery = preCheckQuery.Where(o => o.Uid == expectedUid.Value);
         }
 
-        if (scenarioId.HasValue)
+        if (strategyId.HasValue)
         {
-            preCheckQuery = preCheckQuery.Where(o => o.ScenarioId == scenarioId.Value);
+            preCheckQuery = preCheckQuery.Where(o => o.StrategyId == strategyId.Value);
         }
 
         if (normalizedStock != null)
@@ -213,8 +230,8 @@ public class OrderService
 
         var hasUidFilter = expectedUid.HasValue;
         var uidFilterValue = expectedUid ?? 0L;
-        var hasScenarioFilter = scenarioId.HasValue;
-        var scenarioFilterValue = scenarioId ?? 0L;
+        var hasStrategyFilter = strategyId.HasValue;
+        var strategyFilterValue = strategyId ?? 0L;
         var hasStockFilter = normalizedStock != null;
         var stockFilterValue = normalizedStock ?? string.Empty;
 
@@ -223,7 +240,7 @@ public class OrderService
                 SELECT * FROM orders
                 WHERE "Status" IN ({(int)OrderStatus.Pending}, {(int)OrderStatus.PartiallyFilled})
                   AND ({!hasUidFilter} OR "Uid" = {uidFilterValue})
-                  AND ({!hasScenarioFilter} OR "ScenarioId" = {scenarioFilterValue})
+                  AND ({!hasStrategyFilter} OR "StrategyId" = {strategyFilterValue})
                   AND ({!hasStockFilter} OR UPPER("StockCode") = {stockFilterValue})
                 ORDER BY "OrderId"
                 FOR UPDATE
@@ -239,10 +256,10 @@ public class OrderService
         var buyOrders = targetOrders.Where(o => o.Side == OrderSide.Buy).ToList();
         var sellOrders = targetOrders.Where(o => o.Side == OrderSide.Sell).ToList();
 
-        var walletsMap = new Dictionary<(long ScenarioId, string Currency), Wallet>();
+        var walletsMap = new Dictionary<(long StrategyId, string Currency), Wallet>();
         if (buyOrders.Count > 0)
         {
-            var buyScenarioIds = buyOrders.Select(o => o.ScenarioId).Distinct().OrderBy(id => id).ToArray();
+            var buyStrategyIds = buyOrders.Select(o => o.StrategyId).Distinct().OrderBy(id => id).ToArray();
             var buyCurrencies = buyOrders
                 .Select(o => _masterStore.GetByCode(o.StockCode)?.Currency ?? "KRW")
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -250,24 +267,24 @@ public class OrderService
 
             var lockedWallets = await _db.Wallets
                 .FromSqlInterpolated(
-                    $"SELECT *, xmin FROM wallets WHERE \"ScenarioId\" = ANY({buyScenarioIds}) AND \"Currency\" = ANY({buyCurrencies}) ORDER BY \"ScenarioId\", \"Currency\" FOR UPDATE")
+                    $"SELECT *, xmin FROM wallets WHERE \"StrategyId\" = ANY({buyStrategyIds}) AND \"Currency\" = ANY({buyCurrencies}) ORDER BY \"StrategyId\", \"Currency\" FOR UPDATE")
                 .ToListAsync(ct);
 
-            walletsMap = lockedWallets.ToDictionary(w => (w.ScenarioId, w.Currency));
+            walletsMap = lockedWallets.ToDictionary(w => (w.StrategyId, w.Currency));
         }
 
-        var holdingsMap = new Dictionary<(long ScenarioId, string StockCode), Stocks>();
+        var holdingsMap = new Dictionary<(long StrategyId, string StockCode), Stocks>();
         if (sellOrders.Count > 0)
         {
-            var sellScenarioIds = sellOrders.Select(o => o.ScenarioId).Distinct().OrderBy(id => id).ToArray();
+            var sellStrategyIds = sellOrders.Select(o => o.StrategyId).Distinct().OrderBy(id => id).ToArray();
             var sellStockCodes = sellOrders.Select(o => o.StockCode).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c).ToArray();
 
             var lockedHoldings = await _db.Stocks
                 .FromSqlInterpolated(
-                    $"SELECT *, xmin FROM stocks WHERE \"ScenarioId\" = ANY({sellScenarioIds}) AND \"StockCode\" = ANY({sellStockCodes}) ORDER BY \"ScenarioId\", \"StockCode\" FOR UPDATE")
+                    $"SELECT *, xmin FROM stocks WHERE \"StrategyId\" = ANY({sellStrategyIds}) AND \"StockCode\" = ANY({sellStockCodes}) ORDER BY \"StrategyId\", \"StockCode\" FOR UPDATE")
                 .ToListAsync(ct);
 
-            holdingsMap = lockedHoldings.ToDictionary(s => (s.ScenarioId, s.StockCode));
+            holdingsMap = lockedHoldings.ToDictionary(s => (s.StrategyId, s.StockCode));
         }
 
         var partialBuyOrderIds = buyOrders
@@ -299,7 +316,7 @@ public class OrderService
                     if (order.Side == OrderSide.Buy)
                     {
                         var currency = _masterStore.GetByCode(order.StockCode)?.Currency ?? "KRW";
-                        if (walletsMap.TryGetValue((order.ScenarioId, currency), out var wallet))
+                        if (walletsMap.TryGetValue((order.StrategyId, currency), out var wallet))
                         {
                             var spentSoFar = spentByOrderId.GetValueOrDefault(order.OrderId, 0m);
                             var remainingReserved = Math.Max(0m, order.TotalAmount - spentSoFar);
@@ -315,7 +332,7 @@ public class OrderService
                     }
                     else
                     {
-                        if (holdingsMap.TryGetValue((order.ScenarioId, order.StockCode), out var holding))
+                        if (holdingsMap.TryGetValue((order.StrategyId, order.StockCode), out var holding))
                         {
                             var releaseQty = Math.Min(holding.ReservedQuantity, remainingQty);
                             if (releaseQty > 0)
@@ -398,7 +415,7 @@ public class OrderService
 
                 var wallet = await _db.Wallets
                     .FromSqlInterpolated(
-                        $"SELECT *, xmin FROM wallets WHERE \"ScenarioId\" = {order.ScenarioId} AND \"Currency\" = {currency} FOR UPDATE")
+                        $"SELECT *, xmin FROM wallets WHERE \"StrategyId\" = {order.StrategyId} AND \"Currency\" = {currency} FOR UPDATE")
                     .FirstOrDefaultAsync(ct);
 
                 if (wallet != null)
@@ -420,7 +437,7 @@ public class OrderService
             {
                 var holding = await _db.Stocks
                     .FromSqlInterpolated(
-                        $"SELECT *, xmin FROM stocks WHERE \"ScenarioId\" = {order.ScenarioId} AND \"StockCode\" = {order.StockCode} FOR UPDATE")
+                        $"SELECT *, xmin FROM stocks WHERE \"StrategyId\" = {order.StrategyId} AND \"StockCode\" = {order.StockCode} FOR UPDATE")
                     .FirstOrDefaultAsync(ct);
 
                 if (holding != null)
@@ -453,17 +470,17 @@ public class OrderService
         return ToOrderDto(order);
     }
 
-    public async Task<IReadOnlyList<OrderDto>> GetOrdersAsync(long uid, long scenarioId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrderDto>> GetOrdersAsync(long uid, long strategyId, CancellationToken ct = default)
     {
-        await EnsureScenarioOwnershipAsync(uid, scenarioId, ct);
-        return await GetScenarioOrdersAsAdminAsync(scenarioId, ct);
+        await EnsureStrategyOwnershipAsync(uid, strategyId, ct);
+        return await GetStrategyOrdersAsAdminAsync(strategyId, ct);
     }
 
-    public async Task<IReadOnlyList<OrderDto>> GetScenarioOrdersAsAdminAsync(long scenarioId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrderDto>> GetStrategyOrdersAsAdminAsync(long strategyId, CancellationToken ct = default)
     {
         var orders = await _db.Orders
             .AsNoTracking()
-            .Where(o => o.ScenarioId == scenarioId)
+            .Where(o => o.StrategyId == strategyId)
             .OrderByDescending(o => o.OrderedAtUtc)
             .Take(100)
             .ToListAsync(ct);
@@ -471,14 +488,14 @@ public class OrderService
         return orders.Select(ToOrderDto).ToList();
     }
 
-    public async Task<PagedResult<OrderDto>> GetScenarioOrdersPagedAsAdminAsync(
-        long scenarioId,
+    public async Task<PagedResult<OrderDto>> GetStrategyOrdersPagedAsAdminAsync(
+        long strategyId,
         int page = 1,
         int pageSize = 20,
         CancellationToken ct = default)
     {
         var (normalizedPage, normalizedSize) = PagedResult.Normalize(page, pageSize);
-        var query = _db.Orders.AsNoTracking().Where(o => o.ScenarioId == scenarioId);
+        var query = _db.Orders.AsNoTracking().Where(o => o.StrategyId == strategyId);
         var totalCount = await query.CountAsync(ct);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)normalizedSize));
         var clampedPage = Math.Clamp(normalizedPage, 1, totalPages);
@@ -511,7 +528,7 @@ public class OrderService
             .Select(o => new
             {
                 o.OrderId,
-                o.ScenarioId,
+                o.StrategyId,
                 Uid = o.Uid.ToString(),
                 o.User.Nickname,
                 o.StockCode,
@@ -534,7 +551,7 @@ public class OrderService
 
             return new AdminOrderDto(
                 o.OrderId,
-                o.ScenarioId,
+                o.StrategyId,
                 o.Uid,
                 o.Nickname,
                 o.StockCode,
@@ -635,23 +652,23 @@ public class OrderService
         };
     }
 
-    public async Task<IReadOnlyList<TradeDto>> GetTradesAsync(long uid, long scenarioId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TradeDto>> GetTradesAsync(long uid, long strategyId, CancellationToken ct = default)
     {
-        await EnsureScenarioOwnershipAsync(uid, scenarioId, ct);
-        return await GetScenarioTradesAsAdminAsync(scenarioId, ct);
+        await EnsureStrategyOwnershipAsync(uid, strategyId, ct);
+        return await GetStrategyTradesAsAdminAsync(strategyId, ct);
     }
 
-    public async Task<IReadOnlyList<TradeDto>> GetScenarioTradesAsAdminAsync(long scenarioId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TradeDto>> GetStrategyTradesAsAdminAsync(long strategyId, CancellationToken ct = default)
     {
         return await _db.Trades
             .AsNoTracking()
-            .Where(t => t.ScenarioId == scenarioId)
+            .Where(t => t.StrategyId == strategyId)
             .OrderByDescending(t => t.ExecutedAtUtc)
             .Take(100)
             .Select(t => new TradeDto(
                 t.Id,
                 t.OrderId,
-                t.ScenarioId,
+                t.StrategyId,
                 t.StockCode,
                 t.Side,
                 t.ExecutedPrice,
@@ -661,14 +678,14 @@ public class OrderService
             .ToListAsync(ct);
     }
 
-    public async Task<PagedResult<TradeDto>> GetScenarioTradesPagedAsAdminAsync(
-        long scenarioId,
+    public async Task<PagedResult<TradeDto>> GetStrategyTradesPagedAsAdminAsync(
+        long strategyId,
         int page = 1,
         int pageSize = 20,
         CancellationToken ct = default)
     {
         var (normalizedPage, normalizedSize) = PagedResult.Normalize(page, pageSize);
-        var query = _db.Trades.AsNoTracking().Where(t => t.ScenarioId == scenarioId);
+        var query = _db.Trades.AsNoTracking().Where(t => t.StrategyId == strategyId);
         var totalCount = await query.CountAsync(ct);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)normalizedSize));
         var clampedPage = Math.Clamp(normalizedPage, 1, totalPages);
@@ -680,7 +697,7 @@ public class OrderService
             .Select(t => new TradeDto(
                 t.Id,
                 t.OrderId,
-                t.ScenarioId,
+                t.StrategyId,
                 t.StockCode,
                 t.Side,
                 t.ExecutedPrice,
@@ -692,15 +709,116 @@ public class OrderService
         return PagedResult.Create(items, clampedPage, normalizedSize, totalCount);
     }
 
-    private async Task EnsureScenarioOwnershipAsync(long uid, long scenarioId, CancellationToken ct)
+    public async Task<PagedResult<OrderDto>> GetUserOrdersPagedAsync(
+        long uid,
+        long? strategyId,
+        string? scope = "all",
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var ownsScenario = await _db.Scenarios
-            .AsNoTracking()
-            .AnyAsync(s => s.Id == scenarioId && s.Uid == uid, ct);
-
-        if (!ownsScenario)
+        if (strategyId.HasValue)
         {
-            throw new StockLabException(ErrorCode.Forbidden, "해당 시나리오에 대한 접근 권한이 없습니다.");
+            await EnsureStrategyOwnershipAsync(uid, strategyId.Value, ct);
+        }
+
+        var (normalizedPage, normalizedSize) = PagedResult.Normalize(page, pageSize);
+        var query = _db.Orders.AsNoTracking().Where(o => o.Uid == uid);
+
+        if (strategyId.HasValue)
+        {
+            query = query.Where(o => o.StrategyId == strategyId.Value);
+        }
+
+        var normalizedScope = scope?.Trim().ToLowerInvariant();
+        if (normalizedScope == "active")
+        {
+            query = query.Where(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.PartiallyFilled);
+        }
+        else if (normalizedScope == "completed")
+        {
+            query = query.Where(o => o.Status == OrderStatus.Filled || o.Status == OrderStatus.Cancelled || o.Status == OrderStatus.Rejected);
+        }
+
+        var totalCount = await query.CountAsync(ct);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)normalizedSize));
+        var clampedPage = Math.Clamp(normalizedPage, 1, totalPages);
+
+        var items = await query
+            .OrderByDescending(o => o.OrderedAtUtc)
+            .Skip((clampedPage - 1) * normalizedSize)
+            .Take(normalizedSize)
+            .Select(o => new OrderDto(
+                o.OrderId,
+                o.StrategyId,
+                o.StockCode,
+                o.Side,
+                o.OrderType,
+                o.Status,
+                o.OrderPrice,
+                o.Quantity,
+                o.FilledQuantity,
+                o.TotalAmount,
+                o.OrderedAtUtc))
+            .ToListAsync(ct);
+
+        return PagedResult.Create(items, clampedPage, normalizedSize, totalCount);
+    }
+
+    public async Task<PagedResult<TradeDto>> GetUserTradesPagedAsync(
+        long uid,
+        long? strategyId,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        if (strategyId.HasValue)
+        {
+            await EnsureStrategyOwnershipAsync(uid, strategyId.Value, ct);
+        }
+
+        var (normalizedPage, normalizedSize) = PagedResult.Normalize(page, pageSize);
+        var query = _db.Trades
+            .AsNoTracking()
+            .Where(t => t.Strategy.Uid == uid);
+
+        if (strategyId.HasValue)
+        {
+            query = query.Where(t => t.StrategyId == strategyId.Value);
+        }
+
+        var totalCount = await query.CountAsync(ct);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)normalizedSize));
+        var clampedPage = Math.Clamp(normalizedPage, 1, totalPages);
+
+        var items = await query
+            .OrderByDescending(t => t.ExecutedAtUtc)
+            .Skip((clampedPage - 1) * normalizedSize)
+            .Take(normalizedSize)
+            .Select(t => new TradeDto(
+                t.Id,
+                t.OrderId,
+                t.StrategyId,
+                t.StockCode,
+                t.Side,
+                t.ExecutedPrice,
+                t.ExecutedQuantity,
+                t.TotalAmount,
+                t.ExecutedAtUtc))
+            .ToListAsync(ct);
+
+        return PagedResult.Create(items, clampedPage, normalizedSize, totalCount);
+    }
+
+    private async Task EnsureStrategyOwnershipAsync(long uid, long strategyId, CancellationToken ct)
+    {
+        var ownsStrategy = await _db.Strategies
+            .AsNoTracking()
+            .AnyAsync(s => s.Id == strategyId && s.Uid == uid, ct);
+
+        if (!ownsStrategy)
+        {
+            throw new StockLabException(ErrorCode.Forbidden, "해당 투자 전략에 대한 접근 권한이 없습니다.");
         }
     }
 
@@ -730,7 +848,7 @@ public class OrderService
 
     private static OrderDto ToOrderDto(Order order) => new(
         order.OrderId,
-        order.ScenarioId,
+        order.StrategyId,
         order.StockCode,
         order.Side,
         order.OrderType,

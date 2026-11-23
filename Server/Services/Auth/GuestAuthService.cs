@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +13,8 @@ namespace StockLab.Services.Auth;
 
 public class GuestAuthService
 {
-    public const decimal InitialKrwSeed = 1_000_000m;
-    public const decimal InitialUsdSeed = 1_000m;
+    public const decimal InitialKrwSeed = 0m;
+    public const decimal InitialUsdSeed = 0m;
 
     private const long MinUid18 = 100_000_000_000_000_000L;
     private const long MaxUid18Exclusive = 1_000_000_000_000_000_000L;
@@ -33,7 +33,7 @@ public class GuestAuthService
     }
 
     /// <summary>
-    /// 18자리 순수 난수 UID로 게스트 사용자, 기본 시나리오 및 KRW/USD 지갑을 생성합니다.
+    /// 18자리 순수 난수 UID로 게스트 사용자, 기본 투자 전략 및 KRW/USD 지갑을 생성합니다.
     /// </summary>
     public async Task<UserProfileDto> CreateGuestSessionAsync(string? nickname, CancellationToken ct = default)
     {
@@ -60,10 +60,10 @@ public class GuestAuthService
             LastActiveAtUtc = now
         };
 
-        var defaultScenario = new Scenario
+        var defaultStrategy = new Strategy
         {
             Uid = uid,
-            Name = "기본 시나리오",
+            Name = "기본 투자 전략",
             CreatedAtUtc = now,
             Wallets = new List<Wallet>
             {
@@ -84,18 +84,24 @@ public class GuestAuthService
             }
         };
 
-        user.Scenarios.Add(defaultScenario);
+        user.AccountWallets.Add(new UserWallet { Uid = uid, Currency = "KRW", Balance = 0m, UpdatedAtUtc = now });
+        user.AccountWallets.Add(new UserWallet { Uid = uid, Currency = "USD", Balance = 0m, UpdatedAtUtc = now });
+        user.Strategies.Add(defaultStrategy);
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
-        _logger.LogInformation("[게스트 생성] UID={Uid}, Nickname={Nickname}, ScenarioId={ScenarioId}, KRW={Krw:N0}, USD={Usd:N2}",
-            user.Uid, user.Nickname, defaultScenario.Id, InitialKrwSeed, InitialUsdSeed);
+        _logger.LogInformation("[게스트 생성] UID={Uid}, Nickname={Nickname}, StrategyId={StrategyId}, KRW={Krw:N0}, USD={Usd:N2}",
+            user.Uid, user.Nickname, defaultStrategy.Id, InitialKrwSeed, InitialUsdSeed);
 
-        var wallets = defaultScenario.Wallets
+        var wallets = defaultStrategy.Wallets
             .OrderBy(w => w.Currency)
             .Select(w => new WalletSummaryDto(w.Id, w.Currency, w.AvailableCash, w.PendingCash))
+            .ToList();
+        var accountWallets = user.AccountWallets
+            .OrderBy(w => w.Currency)
+            .Select(w => new AccountWalletDto(w.Id, w.Currency, w.Balance, w.UpdatedAtUtc))
             .ToList();
 
         return new UserProfileDto(
@@ -105,8 +111,11 @@ public class GuestAuthService
             user.CreatedAtUtc,
             new[]
             {
-                new ScenarioSummaryDto(defaultScenario.Id, defaultScenario.Name, defaultScenario.CreatedAtUtc, wallets, Array.Empty<StockHoldingDto>())
-            });
+                new StrategySummaryDto(defaultStrategy.Id, defaultStrategy.Name, defaultStrategy.CreatedAtUtc, wallets, Array.Empty<StockHoldingDto>())
+            },
+            LoginId: null,
+            IsGuest: true,
+            AccountWallets: accountWallets);
     }
 
     public async Task<bool> IsLoginIdAvailableAsync(string loginId, CancellationToken ct = default)
@@ -165,10 +174,10 @@ public class GuestAuthService
         };
         user.PasswordHash = PasswordHasher.HashPassword(user, password);
 
-        var defaultScenario = new Scenario
+        var defaultStrategy = new Strategy
         {
             Uid = uid,
-            Name = "기본 시나리오",
+            Name = "기본 투자 전략",
             CreatedAtUtc = now,
             Wallets = new List<Wallet>
             {
@@ -177,7 +186,9 @@ public class GuestAuthService
             }
         };
 
-        user.Scenarios.Add(defaultScenario);
+        user.AccountWallets.Add(new UserWallet { Uid = uid, Currency = "KRW", Balance = 0m, UpdatedAtUtc = now });
+        user.AccountWallets.Add(new UserWallet { Uid = uid, Currency = "USD", Balance = 0m, UpdatedAtUtc = now });
+        user.Strategies.Add(defaultStrategy);
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
@@ -185,9 +196,13 @@ public class GuestAuthService
         _logger.LogInformation("[회원가입] UID={Uid}, LoginId={LoginId}, Nickname={Nickname}",
             user.Uid, user.LoginId, user.Nickname);
 
-        var wallets = defaultScenario.Wallets
+        var wallets = defaultStrategy.Wallets
             .OrderBy(w => w.Currency)
             .Select(w => new WalletSummaryDto(w.Id, w.Currency, w.AvailableCash, w.PendingCash))
+            .ToList();
+        var accountWallets = user.AccountWallets
+            .OrderBy(w => w.Currency)
+            .Select(w => new AccountWalletDto(w.Id, w.Currency, w.Balance, w.UpdatedAtUtc))
             .ToList();
 
         return new UserProfileDto(
@@ -197,8 +212,11 @@ public class GuestAuthService
             user.CreatedAtUtc,
             new[]
             {
-                new ScenarioSummaryDto(defaultScenario.Id, defaultScenario.Name, defaultScenario.CreatedAtUtc, wallets, Array.Empty<StockHoldingDto>())
-            });
+                new StrategySummaryDto(defaultStrategy.Id, defaultStrategy.Name, defaultStrategy.CreatedAtUtc, wallets, Array.Empty<StockHoldingDto>())
+            },
+            LoginId: user.LoginId,
+            IsGuest: false,
+            AccountWallets: accountWallets);
     }
 
     public async Task<UserProfileDto> LoginAsync(string loginId, string password, CancellationToken ct = default)
@@ -210,9 +228,11 @@ public class GuestAuthService
         }
 
         var user = await _db.Users
-            .Include(u => u.Scenarios)
+            .AsSplitQuery()
+            .Include(u => u.AccountWallets)
+            .Include(u => u.Strategies)
                 .ThenInclude(s => s.Wallets)
-            .Include(u => u.Scenarios)
+            .Include(u => u.Strategies)
                 .ThenInclude(s => s.Holdings)
             .FirstOrDefaultAsync(u => u.LoginId == trimmedId, ct);
 
@@ -280,10 +300,12 @@ public class GuestAuthService
             LastActiveAtUtc = now
         };
         admin.PasswordHash = PasswordHasher.HashPassword(admin, adminPassword);
-        admin.Scenarios.Add(new Scenario
+        admin.AccountWallets.Add(new UserWallet { Uid = uid, Currency = "KRW", Balance = 0m, UpdatedAtUtc = now });
+        admin.AccountWallets.Add(new UserWallet { Uid = uid, Currency = "USD", Balance = 0m, UpdatedAtUtc = now });
+        admin.Strategies.Add(new Strategy
         {
             Uid = uid,
-            Name = "관리자 시나리오",
+            Name = "관리자 투자 전략",
             CreatedAtUtc = now,
             Wallets = new List<Wallet>
             {
@@ -302,9 +324,10 @@ public class GuestAuthService
         var user = await _db.Users
             .AsNoTracking()
             .AsSplitQuery()
-            .Include(u => u.Scenarios)
+            .Include(u => u.AccountWallets)
+            .Include(u => u.Strategies)
                 .ThenInclude(s => s.Wallets)
-            .Include(u => u.Scenarios)
+            .Include(u => u.Strategies)
                 .ThenInclude(s => s.Holdings)
             .FirstOrDefaultAsync(u => u.Uid == uid, ct);
 
@@ -313,7 +336,82 @@ public class GuestAuthService
             throw new StockLabException(ErrorCode.Unauthorized, "유효한 사용자 세션을 찾을 수 없습니다.");
         }
 
-        return AccountService.ToUserProfileDto(user, excludeZeroHoldings: true, _masterStore);
+        var activeOrderCounts = await _db.Orders
+            .AsNoTracking()
+            .Where(o => o.Uid == uid && (o.Status == OrderStatus.Pending || o.Status == OrderStatus.PartiallyFilled))
+            .GroupBy(o => o.StrategyId)
+            .Select(g => new { StrategyId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.StrategyId, x => x.Count, ct);
+
+        return AccountService.ToUserProfileDto(user, excludeZeroHoldings: true, _masterStore, activeOrderCounts);
+    }
+
+    public async Task<UserProfileDto> UpdateOwnNicknameAsync(long uid, string nickname, CancellationToken ct = default)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(nickname) ? string.Empty : nickname.Trim();
+        if (trimmed.Length is < 1 or > 50)
+        {
+            throw new StockLabException(ErrorCode.InvalidInput, "닉네임은 1자 이상 50자 이하로 입력해 주세요.");
+        }
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Uid == uid, ct);
+        if (user == null)
+        {
+            throw new StockLabException(ErrorCode.Unauthorized, "유효한 사용자 세션을 찾을 수 없습니다.");
+        }
+
+        if (string.IsNullOrWhiteSpace(user.LoginId))
+        {
+            throw new StockLabException(ErrorCode.Forbidden, "게스트 계정은 마이페이지 기능을 이용할 수 없습니다.");
+        }
+
+        user.Nickname = trimmed;
+        user.LastActiveAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation("[내 닉네임 변경] UID={Uid}, Nickname={Nickname}", uid, trimmed);
+        return await GetProfileAsync(uid, ct);
+    }
+
+    public async Task ChangePasswordAsync(long uid, string currentPassword, string newPassword, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(currentPassword) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            throw new StockLabException(ErrorCode.InvalidInput, "현재 비밀번호와 새 비밀번호를 모두 입력해 주세요.");
+        }
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Uid == uid, ct);
+        if (user == null)
+        {
+            throw new StockLabException(ErrorCode.Unauthorized, "유효한 사용자 세션을 찾을 수 없습니다.");
+        }
+
+        if (string.IsNullOrWhiteSpace(user.LoginId) || string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            throw new StockLabException(ErrorCode.Forbidden, "게스트 계정은 비밀번호를 변경할 수 없습니다.");
+        }
+
+        var verify = PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword);
+        if (verify == PasswordVerificationResult.Failed)
+        {
+            throw new StockLabException(ErrorCode.Unauthorized, "현재 비밀번호가 올바르지 않습니다.");
+        }
+
+        if (!IsValidPassword(newPassword))
+        {
+            throw new StockLabException(ErrorCode.InvalidInput, "새 비밀번호는 공백 없이 8~64자이며 영문, 숫자, 특수문자를 모두 포함해야 합니다.");
+        }
+
+        if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
+        {
+            throw new StockLabException(ErrorCode.InvalidInput, "기존 비밀번호와 다른 새 비밀번호를 입력해 주세요.");
+        }
+
+        user.PasswordHash = PasswordHasher.HashPassword(user, newPassword);
+        user.LastActiveAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation("[비밀번호 변경] UID={Uid}", uid);
     }
 
     private async Task<long> GenerateUniqueUidAsync(CancellationToken ct)

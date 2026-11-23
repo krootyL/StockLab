@@ -3,7 +3,7 @@ using StockLab.Persistence.Entities;
 namespace StockLab.Dtos;
 
 public record PlaceOrderRequest(
-    long ScenarioId,
+    long StrategyId,
     string StockCode,
     OrderSide Side,
     OrderType OrderType,
@@ -13,7 +13,7 @@ public record PlaceOrderRequest(
 
 public record OrderDto(
     long OrderId,
-    long ScenarioId,
+    long StrategyId,
     string StockCode,
     OrderSide Side,
     OrderType OrderType,
@@ -28,7 +28,7 @@ public record OrderDto(
 public record TradeDto(
     long TradeId,
     long OrderId,
-    long ScenarioId,
+    long StrategyId,
     string StockCode,
     OrderSide Side,
     decimal ExecutedPrice,
@@ -39,7 +39,7 @@ public record TradeDto(
 
 public record AdminOrderDto(
     long OrderId,
-    long ScenarioId,
+    long StrategyId,
     string Uid,
     string Nickname,
     string StockCode,

@@ -3,7 +3,7 @@ namespace StockLab.Persistence.Entities;
 public class Order
 {
     public long OrderId { get; set; }
-    public long ScenarioId { get; set; }
+    public long StrategyId { get; set; }
     public long Uid { get; set; }
     public string StockCode { get; set; } = string.Empty;
     public OrderSide Side { get; set; }
@@ -15,7 +15,7 @@ public class Order
     public decimal TotalAmount { get; set; }
     public DateTime OrderedAtUtc { get; set; }
 
-    public Scenario Scenario { get; set; } = null!;
+    public Strategy Strategy { get; set; } = null!;
     public User User { get; set; } = null!;
     public ICollection<Trade> Trades { get; set; } = new List<Trade>();
 }

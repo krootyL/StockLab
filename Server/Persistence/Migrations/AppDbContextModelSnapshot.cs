@@ -48,9 +48,6 @@ namespace StockLab.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("Volume");
 
-                    b.Property<long>("ScenarioId")
-                        .HasColumnType("bigint");
-
                     b.Property<int>("Side")
                         .HasColumnType("integer");
 
@@ -61,6 +58,9 @@ namespace StockLab.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<long>("StrategyId")
+                        .HasColumnType("bigint");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 4)
@@ -73,37 +73,11 @@ namespace StockLab.Persistence.Migrations
 
                     b.HasIndex("Uid");
 
-                    b.HasIndex("ScenarioId", "OrderedAtUtc");
-
                     b.HasIndex("Status", "StockCode");
 
+                    b.HasIndex("StrategyId", "OrderedAtUtc");
+
                     b.ToTable("orders", (string)null);
-                });
-
-            modelBuilder.Entity("StockLab.Persistence.Entities.Scenario", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<long>("Uid")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Uid");
-
-                    b.ToTable("scenarios", (string)null);
                 });
 
             modelBuilder.Entity("StockLab.Persistence.Entities.Stocks", b =>
@@ -126,13 +100,13 @@ namespace StockLab.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("ReservedVolume");
 
-                    b.Property<long>("ScenarioId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("StockCode")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<long>("StrategyId")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -145,10 +119,36 @@ namespace StockLab.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ScenarioId", "StockCode")
+                    b.HasIndex("StrategyId", "StockCode")
                         .IsUnique();
 
                     b.ToTable("stocks", (string)null);
+                });
+
+            modelBuilder.Entity("StockLab.Persistence.Entities.Strategy", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("Uid")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Uid");
+
+                    b.ToTable("strategies", (string)null);
                 });
 
             modelBuilder.Entity("StockLab.Persistence.Entities.Trade", b =>
@@ -173,9 +173,6 @@ namespace StockLab.Persistence.Migrations
                     b.Property<long>("OrderId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("ScenarioId")
-                        .HasColumnType("bigint");
-
                     b.Property<int>("Side")
                         .HasColumnType("integer");
 
@@ -183,6 +180,9 @@ namespace StockLab.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<long>("StrategyId")
+                        .HasColumnType("bigint");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 4)
@@ -192,7 +192,7 @@ namespace StockLab.Persistence.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("ScenarioId", "ExecutedAtUtc");
+                    b.HasIndex("StrategyId", "ExecutedAtUtc");
 
                     b.ToTable("trades", (string)null);
                 });
@@ -233,6 +233,45 @@ namespace StockLab.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("StockLab.Persistence.Entities.UserWallet", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Balance")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<long>("Uid")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Uid", "Currency")
+                        .IsUnique();
+
+                    b.ToTable("user_wallets", (string)null);
+                });
+
             modelBuilder.Entity("StockLab.Persistence.Entities.Wallet", b =>
                 {
                     b.Property<long>("Id")
@@ -260,7 +299,7 @@ namespace StockLab.Persistence.Migrations
                         .HasColumnType("numeric(18,4)")
                         .HasDefaultValue(0m);
 
-                    b.Property<long>("ScenarioId")
+                    b.Property<long>("StrategyId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAtUtc")
@@ -274,17 +313,46 @@ namespace StockLab.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ScenarioId", "Currency")
+                    b.HasIndex("StrategyId", "Currency")
                         .IsUnique();
 
                     b.ToTable("wallets", (string)null);
                 });
 
+            modelBuilder.Entity("StockLab.Persistence.Entities.WatchlistItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StockCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<long>("Uid")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Uid", "CreatedAtUtc");
+
+                    b.HasIndex("Uid", "StockCode")
+                        .IsUnique();
+
+                    b.ToTable("watchlist_items", (string)null);
+                });
+
             modelBuilder.Entity("StockLab.Persistence.Entities.Order", b =>
                 {
-                    b.HasOne("StockLab.Persistence.Entities.Scenario", "Scenario")
+                    b.HasOne("StockLab.Persistence.Entities.Strategy", "Strategy")
                         .WithMany("Orders")
-                        .HasForeignKey("ScenarioId")
+                        .HasForeignKey("StrategyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -294,31 +362,31 @@ namespace StockLab.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Scenario");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("StockLab.Persistence.Entities.Scenario", b =>
-                {
-                    b.HasOne("StockLab.Persistence.Entities.User", "User")
-                        .WithMany("Scenarios")
-                        .HasForeignKey("Uid")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Strategy");
 
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("StockLab.Persistence.Entities.Stocks", b =>
                 {
-                    b.HasOne("StockLab.Persistence.Entities.Scenario", "Scenario")
+                    b.HasOne("StockLab.Persistence.Entities.Strategy", "Strategy")
                         .WithMany("Holdings")
-                        .HasForeignKey("ScenarioId")
+                        .HasForeignKey("StrategyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Scenario");
+                    b.Navigation("Strategy");
+                });
+
+            modelBuilder.Entity("StockLab.Persistence.Entities.Strategy", b =>
+                {
+                    b.HasOne("StockLab.Persistence.Entities.User", "User")
+                        .WithMany("Strategies")
+                        .HasForeignKey("Uid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StockLab.Persistence.Entities.Trade", b =>
@@ -329,26 +397,48 @@ namespace StockLab.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("StockLab.Persistence.Entities.Scenario", "Scenario")
+                    b.HasOne("StockLab.Persistence.Entities.Strategy", "Strategy")
                         .WithMany("Trades")
-                        .HasForeignKey("ScenarioId")
+                        .HasForeignKey("StrategyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");
 
-                    b.Navigation("Scenario");
+                    b.Navigation("Strategy");
+                });
+
+            modelBuilder.Entity("StockLab.Persistence.Entities.UserWallet", b =>
+                {
+                    b.HasOne("StockLab.Persistence.Entities.User", "User")
+                        .WithMany("AccountWallets")
+                        .HasForeignKey("Uid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StockLab.Persistence.Entities.Wallet", b =>
                 {
-                    b.HasOne("StockLab.Persistence.Entities.Scenario", "Scenario")
+                    b.HasOne("StockLab.Persistence.Entities.Strategy", "Strategy")
                         .WithMany("Wallets")
-                        .HasForeignKey("ScenarioId")
+                        .HasForeignKey("StrategyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Scenario");
+                    b.Navigation("Strategy");
+                });
+
+            modelBuilder.Entity("StockLab.Persistence.Entities.WatchlistItem", b =>
+                {
+                    b.HasOne("StockLab.Persistence.Entities.User", "User")
+                        .WithMany("WatchlistItems")
+                        .HasForeignKey("Uid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StockLab.Persistence.Entities.Order", b =>
@@ -356,7 +446,7 @@ namespace StockLab.Persistence.Migrations
                     b.Navigation("Trades");
                 });
 
-            modelBuilder.Entity("StockLab.Persistence.Entities.Scenario", b =>
+            modelBuilder.Entity("StockLab.Persistence.Entities.Strategy", b =>
                 {
                     b.Navigation("Holdings");
 
@@ -369,9 +459,13 @@ namespace StockLab.Persistence.Migrations
 
             modelBuilder.Entity("StockLab.Persistence.Entities.User", b =>
                 {
+                    b.Navigation("AccountWallets");
+
                     b.Navigation("Orders");
 
-                    b.Navigation("Scenarios");
+                    b.Navigation("Strategies");
+
+                    b.Navigation("WatchlistItems");
                 });
 #pragma warning restore 612, 618
         }

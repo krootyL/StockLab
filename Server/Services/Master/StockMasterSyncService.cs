@@ -106,6 +106,15 @@ public class StockMasterSyncService
         var nysRes = await nysTask;
         var amsRes = await amsTask;
 
+        bool anyUpdated = kospiRes.Bytes != null || kosdaqRes.Bytes != null || konexRes.Bytes != null
+            || nxtRes.Bytes != null || nasRes.Bytes != null || nysRes.Bytes != null || amsRes.Bytes != null;
+
+        if (!forceDownload && !anyUpdated && _store.TotalCount > 0)
+        {
+            _logger.LogInformation("[마스터 변동 없음] 7대 시장 모두 최신 상태(304 Not Modified)이므로 기존 마스터({Count:N0}건)를 유지합니다.", _store.TotalCount);
+            return (true, _store.TotalCount, false);
+        }
+
         var allStocks = new List<StockMasterItem>(15000);
 
         // 코스피

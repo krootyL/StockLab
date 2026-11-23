@@ -36,6 +36,23 @@ public class StockQuoteHub : Hub
         await _socketService.ReleaseRealtimeStockAsync(normalized, Context.ConnectionId);
     }
 
+    public async Task SyncWatchlistStocks(IReadOnlyList<string>? stockCodes)
+    {
+        var normalizedCodes = (stockCodes ?? Array.Empty<string>())
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var code in normalizedCodes)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"stock:{code}");
+        }
+
+        _logger.LogInformation("[SignalR] 클라이언트({ConnectionId}) 관심종목 웹소켓 동기화: {Count}종목", Context.ConnectionId, normalizedCodes.Count);
+        await _socketService.SyncWatchlistStocksAsync(normalizedCodes, Context.ConnectionId);
+    }
+
     public async Task RegisterOrderUpdates()
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, "orders:all");

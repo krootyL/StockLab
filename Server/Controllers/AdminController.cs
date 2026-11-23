@@ -78,27 +78,27 @@ public class AdminController : ControllerBase
         return Ok(ApiResponse<PagedResult<AdminOrderDto>>.Ok(orders));
     }
 
-    [HttpGet("scenarios/{scenarioId:long}/orders")]
-    public async Task<IActionResult> GetScenarioOrders(
-        long scenarioId,
+    [HttpGet("strategies/{strategyId:long}/orders")]
+    public async Task<IActionResult> GetStrategyOrders(
+        long strategyId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
         ValidateAdminKey();
-        var orders = await _orderService.GetScenarioOrdersPagedAsAdminAsync(scenarioId, page, pageSize, ct);
+        var orders = await _orderService.GetStrategyOrdersPagedAsAdminAsync(strategyId, page, pageSize, ct);
         return Ok(ApiResponse<PagedResult<OrderDto>>.Ok(orders));
     }
 
-    [HttpGet("scenarios/{scenarioId:long}/trades")]
-    public async Task<IActionResult> GetScenarioTrades(
-        long scenarioId,
+    [HttpGet("strategies/{strategyId:long}/trades")]
+    public async Task<IActionResult> GetStrategyTrades(
+        long strategyId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
         ValidateAdminKey();
-        var trades = await _orderService.GetScenarioTradesPagedAsAdminAsync(scenarioId, page, pageSize, ct);
+        var trades = await _orderService.GetStrategyTradesPagedAsAdminAsync(strategyId, page, pageSize, ct);
         return Ok(ApiResponse<PagedResult<TradeDto>>.Ok(trades));
     }
 
@@ -111,16 +111,16 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// 관리자 전용: 대기 중인 주문(Pending/PartiallyFilled)을 조건(시나리오·종목) 또는 전체 단위로 일괄 취소하고 예수금·예약 수량을 환불/해제합니다.
+    /// 관리자 전용: 대기 중인 주문(Pending/PartiallyFilled)을 조건(투자 전략·종목) 또는 전체 단위로 일괄 취소하고 예수금·예약 수량을 환불/해제합니다.
     /// </summary>
     [HttpPost("orders/cancel-pending")]
     public async Task<IActionResult> CancelPendingOrders(
-        [FromQuery] long? scenarioId = null,
+        [FromQuery] long? strategyId = null,
         [FromQuery] string? stockCode = null,
         CancellationToken ct = default)
     {
         ValidateAdminKey();
-        var result = await _orderService.CancelPendingOrdersAsAdminAsync(scenarioId, stockCode, ct);
+        var result = await _orderService.CancelPendingOrdersAsAdminAsync(strategyId, stockCode, ct);
         return Ok(ApiResponse<BulkCancelOrdersResult>.Ok(result));
     }
 
@@ -191,7 +191,7 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// 관리자 전용: 테스트 환경에서 특정 시나리오 지갑의 예수가능금을 증감(+/-)합니다.
+    /// 관리자 전용: 테스트 환경에서 특정 투자 전략 지갑의 예수가능금을 증감(+/-)합니다.
     /// </summary>
     [HttpPost("wallets/adjust-balance")]
     public async Task<IActionResult> AdjustBalance([FromBody] AdjustBalanceRequest request, CancellationToken ct)
@@ -199,7 +199,7 @@ public class AdminController : ControllerBase
         ValidateAdminKey();
 
         var updatedWallet = await _accountService.AdjustBalanceAsync(
-            request.ScenarioId,
+            request.StrategyId,
             request.Currency,
             request.Amount,
             ct);

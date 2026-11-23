@@ -36,19 +36,44 @@ public class OrderController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetOrders([FromQuery] long scenarioId, CancellationToken ct)
+    public async Task<IActionResult> GetOrders([FromQuery] long strategyId, CancellationToken ct)
     {
         var uid = GetCurrentUid();
-        var orders = await _orderService.GetOrdersAsync(uid, scenarioId, ct);
+        var orders = await _orderService.GetOrdersAsync(uid, strategyId, ct);
         return Ok(ApiResponse<IReadOnlyList<OrderDto>>.Ok(orders));
     }
 
-    [HttpGet("trades")]
-    public async Task<IActionResult> GetTrades([FromQuery] long scenarioId, CancellationToken ct)
+    [HttpGet("paged")]
+    public async Task<IActionResult> GetOrdersPaged(
+        [FromQuery] long? strategyId = null,
+        [FromQuery] string? scope = "all",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
         var uid = GetCurrentUid();
-        var trades = await _orderService.GetTradesAsync(uid, scenarioId, ct);
+        var paged = await _orderService.GetUserOrdersPagedAsync(uid, strategyId, scope, page, pageSize, ct);
+        return Ok(ApiResponse<PagedResult<OrderDto>>.Ok(paged));
+    }
+
+    [HttpGet("trades")]
+    public async Task<IActionResult> GetTrades([FromQuery] long strategyId, CancellationToken ct)
+    {
+        var uid = GetCurrentUid();
+        var trades = await _orderService.GetTradesAsync(uid, strategyId, ct);
         return Ok(ApiResponse<IReadOnlyList<TradeDto>>.Ok(trades));
+    }
+
+    [HttpGet("trades/paged")]
+    public async Task<IActionResult> GetTradesPaged(
+        [FromQuery] long? strategyId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var uid = GetCurrentUid();
+        var paged = await _orderService.GetUserTradesPagedAsync(uid, strategyId, page, pageSize, ct);
+        return Ok(ApiResponse<PagedResult<TradeDto>>.Ok(paged));
     }
 
     private long GetCurrentUid()
