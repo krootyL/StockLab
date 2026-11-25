@@ -20,3 +20,40 @@ public record StockQuoteResponse(
     decimal BasePrice,         // 기준가 / 전일 종가
     DateTime UpdatedAtUtc      // 조회 시각 (UTC)
 );
+
+/// <summary>
+/// 캔들 차트 단일 봉 데이터 DTO
+/// </summary>
+public record StockCandlePoint(
+    long Time,        // 차트 X축 타임스탬프 (Unix Seconds, 표시 기준 시각)
+    decimal Open,     // 시가
+    decimal High,     // 고가
+    decimal Low,      // 저가
+    decimal Close,    // 종가
+    long Volume       // 거래량
+);
+
+/// <summary>
+/// 종목 캔들 차트 응답 DTO
+/// </summary>
+public record StockCandleResponse(
+    string StockCode,
+    string Period,      // 1M(분봉), D(일), W(주), M(월), Y(년)
+    string Currency,
+    bool IsIntraday,
+    IReadOnlyList<StockCandlePoint> Candles,
+    DateTime UpdatedAtUtc
+);
+
+/// <summary>
+/// 종목 최근 체결 틱 단건 DTO
+/// </summary>
+public record StockTickItem(
+    string Time,        // HH:MM:SS
+    decimal Price,      // 체결가
+    decimal PriceChange,// 전일 대비
+    double ChangeRate,  // 등락률 (%)
+    long Volume,        // 체결량
+    string Currency,
+    decimal Strength = 0m // 체결강도 (%)
+);

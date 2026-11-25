@@ -56,6 +56,37 @@ public class StockController : ControllerBase
         return Ok(ApiResponse<StockQuoteResponse>.Ok(quote));
     }
 
+    // 2-1. 종목 캔들 차트 데이터 조회 (분봉/일/주/월/년 - 클라이언트 개인 KIS 키 직접 호출)
+    [HttpGet("{code}/candles")]
+    public async Task<ActionResult<ApiResponse<StockCandleResponse>>> GetStockCandles(
+        string code,
+        [FromQuery] string period = "D",
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new StockLabException(ErrorCode.InvalidInput, "종목코드를 입력해주세요.");
+        }
+
+        var candles = await _quoteService.GetCandlesAsync(code, period, cancellationToken);
+        return Ok(ApiResponse<StockCandleResponse>.Ok(candles));
+    }
+
+    // 2-2. 종목 최근 체결 틱 내역 조회 (클라이언트 개인 KIS 키 직접 호출)
+    [HttpGet("{code}/ticks")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<StockTickItem>>>> GetStockTicks(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new StockLabException(ErrorCode.InvalidInput, "종목코드를 입력해주세요.");
+        }
+
+        var ticks = await _quoteService.GetRecentTicksAsync(code, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<StockTickItem>>.Ok(ticks));
+    }
+
     // 3. 단축코드로 마스터 메타데이터 조회 (로컬 TTL 캐시 히트 시 즉시 반환, 미스 시 Server 선택 조회)
     [HttpGet("{code}")]
     public async Task<ActionResult<ApiResponse<StockMasterItem>>> GetByCode(

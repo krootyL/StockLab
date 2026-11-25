@@ -74,7 +74,10 @@ app.Use(async (context, next) =>
     var isKisEndpoint =
         path.StartsWithSegments("/hubs") ||
         path.StartsWithSegments("/api/stocks/popular") ||
-        (path.StartsWithSegments("/api/stocks") && path.Value != null && path.Value.EndsWith("/quote", StringComparison.OrdinalIgnoreCase));
+        (path.StartsWithSegments("/api/stocks") && path.Value != null &&
+            (path.Value.EndsWith("/quote", StringComparison.OrdinalIgnoreCase) ||
+             path.Value.EndsWith("/candles", StringComparison.OrdinalIgnoreCase) ||
+             path.Value.EndsWith("/ticks", StringComparison.OrdinalIgnoreCase)));
 
     if (isKisEndpoint)
     {

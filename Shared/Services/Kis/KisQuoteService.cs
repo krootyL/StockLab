@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -341,7 +342,13 @@ public class KisQuoteService
             totalBid);
     }
 
-    private async Task<JsonDocument> SendKisJsonAsync(string stockCode, string url, string trId, string accessToken, CancellationToken ct)
+    private async Task<JsonDocument> SendKisJsonAsync(
+        string stockCode,
+        string url,
+        string trId,
+        string accessToken,
+        CancellationToken ct,
+        string actionLabel = "호가 스냅샷")
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -350,8 +357,8 @@ public class KisQuoteService
         request.Headers.Add("tr_id", trId);
         request.Headers.Add("custtype", "P");
 
-        _logger.LogInformation("{Prefix} 호가 스냅샷 요청 전송 [종목: {Code}, TR_ID: {TrId}]",
-            LogConstants.KisApiPrefix, stockCode, trId);
+        _logger.LogInformation("{Prefix} {Action} 요청 전송 [종목: {Code}, TR_ID: {TrId}]",
+            LogConstants.KisApiPrefix, actionLabel, stockCode, trId);
 
         using var response = await _httpClient.SendAsync(request, ct);
         var content = await response.Content.ReadAsStringAsync(ct);
@@ -393,10 +400,389 @@ public class KisQuoteService
             : string.Empty;
 
     private static decimal ParseDecimal(string value)
-        => decimal.TryParse(value, out var parsed) ? parsed : 0m;
+        => decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0m;
 
     private static long ParseLong(string value)
-        => long.TryParse(value, out var parsed) ? parsed : 0L;
+        => long.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0L;
+
+    /// <summary>
+    /// 종목 캔들 차트(분봉/일/주/월/년) 조회 (KIS 공식 기간별·분봉 시세 API 기반, 단기 메모리 캐싱)
+    /// </summary>
+    public async Task<StockCandleResponse> GetCandlesAsync(
+        string code,
+        string period = "D",
+        CancellationToken cancellationToken = default)
+    {
+        var master = await _store.GetByCodeAsync(code, cancellationToken)
+            ?? throw new StockLabException(ErrorCode.StockNotFound, $"종목코드 '{code}'를 찾을 수 없습니다.");
+
+        var normalizedPeriod = NormalizeCandlePeriod(period);
+        var isIntraday = normalizedPeriod == "1M";
+
+        if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
+        {
+            throw new StockLabException(ErrorCode.KisConfigMissing, "KIS API 키가 연동되지 않아 차트 데이터를 조회할 수 없습니다.");
+        }
+
+        var cacheKey = $"KIS_CANDLES:{master.ShortCode}:{normalizedPeriod}";
+        if (_cache.TryGetValue(cacheKey, out StockCandleResponse? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var token = await _tokenService.GetAccessTokenAsync(cancellationToken);
+        IReadOnlyList<StockCandlePoint> candles;
+
+        if (master.MarketType == "USA")
+        {
+            candles = isIntraday
+                ? await FetchOverseasMinuteCandlesAsync(master, token, cancellationToken)
+                : await FetchOverseasPeriodCandlesAsync(master, normalizedPeriod, token, cancellationToken);
+        }
+        else
+        {
+            candles = isIntraday
+                ? await FetchDomesticMinuteCandlesAsync(master, token, cancellationToken)
+                : await FetchDomesticPeriodCandlesAsync(master, normalizedPeriod, token, cancellationToken);
+        }
+
+        var response = new StockCandleResponse(
+            StockCode: master.ShortCode,
+            Period: normalizedPeriod,
+            Currency: master.Currency,
+            IsIntraday: isIntraday,
+            Candles: candles,
+            UpdatedAtUtc: DateTime.UtcNow);
+
+        if (candles.Count > 0)
+        {
+            _cache.Set(cacheKey, response, isIntraday ? TimeSpan.FromSeconds(15) : TimeSpan.FromSeconds(60));
+        }
+
+        return response;
+    }
+
+    private static string NormalizeCandlePeriod(string? period)
+    {
+        var p = string.IsNullOrWhiteSpace(period) ? "D" : period.Trim().ToUpperInvariant();
+        return p is "1M" or "D" or "W" or "M" or "Y" ? p : "D";
+    }
+
+    private async Task<IReadOnlyList<StockCandlePoint>> FetchDomesticPeriodCandlesAsync(
+        StockMasterItem master,
+        string period,
+        string token,
+        CancellationToken ct)
+    {
+        var kstNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ResolveKoreaTimeZone());
+        var endDate = kstNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var startDate = period switch
+        {
+            "W" => kstNow.AddYears(-2).ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            "M" => kstNow.AddYears(-6).ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            "Y" => kstNow.AddYears(-15).ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            _ => kstNow.AddMonths(-6).ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+        };
+
+        var url = $"{_settings.RestBaseUrl}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
+            + $"?FID_COND_MRKT_DIV_CODE=J"
+            + $"&FID_INPUT_ISCD={Uri.EscapeDataString(master.ShortCode)}"
+            + $"&FID_INPUT_DATE_1={startDate}"
+            + $"&FID_INPUT_DATE_2={endDate}"
+            + $"&FID_PERIOD_DIV_CODE={period}"
+            + $"&FID_ORG_ADJ_PRC=0";
+
+        using var doc = await SendKisJsonAsync(master.ShortCode, url, "FHKST03010100", token, ct, $"국내 차트({period})");
+        return ParseCandleArray(doc, "output2", isIntraday: false,
+            dateProp: "stck_bsop_date", timeProp: null,
+            openProp: "stck_oprc", highProp: "stck_hgpr", lowProp: "stck_lwpr", closeProp: "stck_clpr", volProp: "acml_vol");
+    }
+
+    private async Task<IReadOnlyList<StockCandlePoint>> FetchDomesticMinuteCandlesAsync(
+        StockMasterItem master,
+        string token,
+        CancellationToken ct)
+    {
+        var kstNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ResolveKoreaTimeZone());
+        var inputHour = kstNow.TimeOfDay >= new TimeSpan(15, 30, 0) || kstNow.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            ? "153000"
+            : kstNow.ToString("HHmmss", CultureInfo.InvariantCulture);
+
+        var url = $"{_settings.RestBaseUrl}/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice"
+            + $"?FID_COND_MRKT_DIV_CODE=J"
+            + $"&FID_INPUT_ISCD={Uri.EscapeDataString(master.ShortCode)}"
+            + $"&FID_INPUT_HOUR_1={inputHour}"
+            + $"&FID_PW_DATA_INCU_YN=Y"
+            + $"&FID_ETC_CLS_CODE=";
+
+        using var doc = await SendKisJsonAsync(master.ShortCode, url, "FHKST03010200", token, ct, "국내 분봉 차트");
+        return ParseCandleArray(doc, "output2", isIntraday: true,
+            dateProp: "stck_bsop_date", timeProp: "stck_cntg_hour",
+            openProp: "stck_oprc", highProp: "stck_hgpr", lowProp: "stck_lwpr", closeProp: "stck_prpr", volProp: "cntg_vol");
+    }
+
+    private async Task<IReadOnlyList<StockCandlePoint>> FetchOverseasPeriodCandlesAsync(
+        StockMasterItem master,
+        string period,
+        string token,
+        CancellationToken ct)
+    {
+        var exchange = string.IsNullOrWhiteSpace(master.ExchangeCode) ? "NAS" : master.ExchangeCode;
+        var gubn = period switch
+        {
+            "W" => "1",
+            "M" or "Y" => "2", // 해외기간별시세(HHDFS76240000)는 일(0)/주(1)/월(2) 지원
+            _ => "0"
+        };
+
+        var url = $"{_settings.RestBaseUrl}/uapi/overseas-price/v1/quotations/dailyprice"
+            + $"?AUTH="
+            + $"&EXCD={Uri.EscapeDataString(exchange)}"
+            + $"&SYMB={Uri.EscapeDataString(master.ShortCode)}"
+            + $"&GUBN={gubn}"
+            + $"&BYMD="
+            + $"&MODP=1"
+            + $"&KEYB=";
+
+        using var doc = await SendKisJsonAsync(master.ShortCode, url, "HHDFS76240000", token, ct, $"해외 차트({period})");
+        return ParseCandleArray(doc, "output2", isIntraday: false,
+            dateProp: "xymd", timeProp: null,
+            openProp: "open", highProp: "high", lowProp: "low", closeProp: "clos", volProp: "tvol");
+    }
+
+    private async Task<IReadOnlyList<StockCandlePoint>> FetchOverseasMinuteCandlesAsync(
+        StockMasterItem master,
+        string token,
+        CancellationToken ct)
+    {
+        var exchange = string.IsNullOrWhiteSpace(master.ExchangeCode) ? "NAS" : master.ExchangeCode;
+        var url = $"{_settings.RestBaseUrl}/uapi/overseas-price/v1/quotations/inquire-time-itemchartprice"
+            + $"?AUTH="
+            + $"&EXCD={Uri.EscapeDataString(exchange)}"
+            + $"&SYMB={Uri.EscapeDataString(master.ShortCode)}"
+            + $"&NMIN=1"
+            + $"&PINC=1"
+            + $"&NEXT="
+            + $"&NREC=120"
+            + $"&FILL="
+            + $"&KEYB=";
+
+        using var doc = await SendKisJsonAsync(master.ShortCode, url, "HHDFS76950200", token, ct, "해외 분봉 차트");
+        return ParseCandleArray(doc, "output2", isIntraday: true,
+            dateProp: "kymd", timeProp: "khms",
+            openProp: "open", highProp: "high", lowProp: "low", closeProp: "last", volProp: "evol");
+    }
+
+    private static IReadOnlyList<StockCandlePoint> ParseCandleArray(
+        JsonDocument doc,
+        string arrayProperty,
+        bool isIntraday,
+        string dateProp,
+        string? timeProp,
+        string openProp,
+        string highProp,
+        string lowProp,
+        string closeProp,
+        string volProp)
+    {
+        if (!doc.RootElement.TryGetProperty(arrayProperty, out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<StockCandlePoint>();
+        }
+
+        var byTime = new Dictionary<long, StockCandlePoint>();
+        foreach (var node in arr.EnumerateArray())
+        {
+            if (node.ValueKind != JsonValueKind.Object) continue;
+
+            var rawDate = GetJsonString(node, dateProp);
+            var rawTime = timeProp != null ? GetJsonString(node, timeProp) : "000000";
+            if (!TryParseChartTimestamp(rawDate, rawTime, isIntraday, out var unixSeconds))
+            {
+                continue;
+            }
+
+            var close = ParseDecimal(GetJsonString(node, closeProp));
+            if (close <= 0) continue;
+
+            var open = ParseDecimal(GetJsonString(node, openProp));
+            var high = ParseDecimal(GetJsonString(node, highProp));
+            var low = ParseDecimal(GetJsonString(node, lowProp));
+            var volume = ParseLong(GetJsonString(node, volProp));
+
+            if (open <= 0) open = close;
+            if (high <= 0) high = Math.Max(open, close);
+            if (low <= 0) low = Math.Min(open, close);
+
+            byTime[unixSeconds] = new StockCandlePoint(unixSeconds, open, high, low, close, volume);
+        }
+
+        return byTime.Values.OrderBy(c => c.Time).ToList();
+    }
+
+    private static bool TryParseChartTimestamp(string rawDate, string rawTime, bool isIntraday, out long unixSeconds)
+    {
+        unixSeconds = 0;
+        if (string.IsNullOrWhiteSpace(rawDate) || rawDate.Length != 8) return false;
+
+        if (!isIntraday)
+        {
+            if (DateTime.TryParseExact(rawDate, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            {
+                unixSeconds = new DateTimeOffset(dt.Year, dt.Month, dt.Day, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+                return true;
+            }
+            return false;
+        }
+
+        var hhmmss = string.IsNullOrWhiteSpace(rawTime) ? "000000" : rawTime.Trim().PadLeft(6, '0');
+        if (hhmmss.Length > 6) hhmmss = hhmmss[..6];
+
+        if (DateTime.TryParseExact(
+            $"{rawDate}{hhmmss}",
+            "yyyyMMddHHmmss",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var dtTime))
+        {
+            // 브라우저 차트 X축을 KST 현지 시각 그대로 표시하기 위해 Offset 0 기준 Epoch로 직렬화
+            unixSeconds = new DateTimeOffset(dtTime, TimeSpan.Zero).ToUnixTimeSeconds();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static TimeZoneInfo ResolveKoreaTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Korea Standard Time");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Seoul");
+        }
+    }
+
+    /// <summary>
+    /// 종목 최근 체결 틱 리스트 조회 (국내 FHKST01010300 / 해외 HHDFS76200300, 3초 단기 캐싱)
+    /// </summary>
+    public async Task<IReadOnlyList<StockTickItem>> GetRecentTicksAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var master = await _store.GetByCodeAsync(code, cancellationToken)
+            ?? throw new StockLabException(ErrorCode.StockNotFound, $"종목코드 '{code}'를 찾을 수 없습니다.");
+
+        if (string.IsNullOrWhiteSpace(_settings.AppKey) || string.IsNullOrWhiteSpace(_settings.AppSecret))
+        {
+            throw new StockLabException(ErrorCode.KisConfigMissing, "KIS API 키가 연동되지 않아 체결 틱 데이터를 조회할 수 없습니다.");
+        }
+
+        var cacheKey = $"KIS_TICKS:{master.ShortCode}";
+        if (_cache.TryGetValue(cacheKey, out IReadOnlyList<StockTickItem>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var token = await _tokenService.GetAccessTokenAsync(cancellationToken);
+        IReadOnlyList<StockTickItem> ticks = master.MarketType == "USA"
+            ? await FetchOverseasRecentTicksAsync(master, token, cancellationToken)
+            : await FetchDomesticRecentTicksAsync(master, token, cancellationToken);
+
+        if (ticks.Count > 0)
+        {
+            _cache.Set(cacheKey, ticks, TimeSpan.FromSeconds(3));
+        }
+
+        return ticks;
+    }
+
+    private async Task<IReadOnlyList<StockTickItem>> FetchDomesticRecentTicksAsync(
+        StockMasterItem master,
+        string token,
+        CancellationToken ct)
+    {
+        var url = $"{_settings.RestBaseUrl}/uapi/domestic-stock/v1/quotations/inquire-ccnl"
+            + $"?FID_COND_MRKT_DIV_CODE=J"
+            + $"&FID_INPUT_ISCD={Uri.EscapeDataString(master.ShortCode)}";
+
+        using var doc = await SendKisJsonAsync(master.ShortCode, url, "FHKST01010300", token, ct, "국내 체결틱");
+        if (!doc.RootElement.TryGetProperty("output", out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<StockTickItem>();
+        }
+
+        var list = new List<StockTickItem>();
+        foreach (var node in arr.EnumerateArray())
+        {
+            if (node.ValueKind != JsonValueKind.Object) continue;
+            var price = ParseDecimal(GetJsonString(node, "stck_prpr"));
+            if (price <= 0) continue;
+
+            var sign = GetJsonString(node, "prdy_vrss_sign");
+            var diff = ParseDecimal(GetJsonString(node, "prdy_vrss"));
+            double.TryParse(GetJsonString(node, "prdy_ctrt"), NumberStyles.Any, CultureInfo.InvariantCulture, out var rate);
+            if ((sign is "4" or "5" || rate < 0) && diff > 0) diff = -diff;
+            else if (diff < 0 && rate > 0) rate = -rate;
+
+            var vol = ParseLong(GetJsonString(node, "cntg_vol"));
+            var strength = ParseDecimal(GetJsonString(node, "tday_rltv"));
+            var time = FormatTickHhMmSs(GetJsonString(node, "stck_cntg_hour"));
+            list.Add(new StockTickItem(time, price, diff, rate, vol, master.Currency, strength));
+        }
+
+        return list;
+    }
+
+    private async Task<IReadOnlyList<StockTickItem>> FetchOverseasRecentTicksAsync(
+        StockMasterItem master,
+        string token,
+        CancellationToken ct)
+    {
+        var exchange = string.IsNullOrWhiteSpace(master.ExchangeCode) ? "NAS" : master.ExchangeCode;
+        var url = $"{_settings.RestBaseUrl}/uapi/overseas-price/v1/quotations/inquire-ccnl"
+            + $"?AUTH="
+            + $"&EXCD={Uri.EscapeDataString(exchange)}"
+            + $"&SYMB={Uri.EscapeDataString(master.ShortCode)}"
+            + $"&TDAY=1"
+            + $"&KEYB=";
+
+        using var doc = await SendKisJsonAsync(master.ShortCode, url, "HHDFS76200300", token, ct, "해외 체결틱");
+        if (!doc.RootElement.TryGetProperty("output2", out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<StockTickItem>();
+        }
+
+        var list = new List<StockTickItem>();
+        foreach (var node in arr.EnumerateArray())
+        {
+            if (node.ValueKind != JsonValueKind.Object) continue;
+            var price = ParseDecimal(GetJsonString(node, "last"));
+            if (price <= 0) continue;
+
+            var sign = GetJsonString(node, "sign");
+            var diff = ParseDecimal(GetJsonString(node, "diff"));
+            double.TryParse(GetJsonString(node, "rate"), NumberStyles.Any, CultureInfo.InvariantCulture, out var rate);
+            if ((sign is "4" or "5" || rate < 0) && diff > 0) diff = -diff;
+            else if (diff < 0 && rate > 0) rate = -rate;
+
+            var vol = ParseLong(GetJsonString(node, "evol"));
+            var strength = ParseDecimal(GetJsonString(node, "vpow"));
+            var time = FormatTickHhMmSs(GetJsonString(node, "khms"));
+            list.Add(new StockTickItem(time, price, diff, rate, vol, master.Currency, strength));
+        }
+
+        return list;
+    }
+
+    private static string FormatTickHhMmSs(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "--:--:--";
+        var digits = raw.Trim();
+        return digits.Length == 6 ? $"{digits[..2]}:{digits[2..4]}:{digits[4..6]}" : digits;
+    }
 
     /// <summary>
     /// 국내주식 현재가 조회 (TR_ID: FHKST01010100)

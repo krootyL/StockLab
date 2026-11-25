@@ -1112,6 +1112,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s ease;
+            overscroll-behavior: contain;
         }
 
         .modal-backdrop.open {
@@ -1167,6 +1168,7 @@
         .trade-modal-body {
             padding: 1.15rem 1.4rem 1.3rem;
             overflow-y: auto;
+            overscroll-behavior: contain;
         }
 
         .trade-modal-grid {
@@ -1247,14 +1249,70 @@
         }
 
         .trade-col-orderbook .orderbook-section {
-            flex: 1;
             display: flex;
             flex-direction: column;
         }
 
         .trade-col-orderbook .orderbook-list {
+            max-height: 210px;
+        }
+
+        .orderbook-row {
+            cursor: pointer;
+            transition: filter 0.1s ease;
+        }
+
+        .orderbook-row:hover {
+            filter: brightness(0.95);
+        }
+
+        .ticks-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
             flex: 1;
-            max-height: 445px;
+            min-height: 220px;
+        }
+
+        .ticks-list-wrap {
+            position: relative;
+            flex: 1;
+            min-height: 180px;
+        }
+
+        .ticks-list {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            font-family: monospace;
+            font-size: 0.78rem;
+        }
+
+        .tick-row {
+            display: grid;
+            grid-template-columns: 0.9fr 1fr 0.9fr 0.85fr;
+            padding: 0.28rem 0.65rem;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tick-row:last-child {
+            border-bottom: none;
+        }
+
+        .tick-row-head {
+            position: sticky;
+            top: 0;
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.72rem;
+            z-index: 1;
         }
 
         .trade-order-card {
@@ -1488,33 +1546,84 @@
         .btn-watchlist-toggle {
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
-            padding: 0.32rem 0.68rem;
-            font-size: 0.78rem;
-            font-weight: 700;
-            border-radius: 8px;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border-radius: 9px;
             border: 1px solid var(--border-color);
             background: var(--bg-elevated);
-            color: var(--text-secondary);
+            color: var(--text-muted);
             cursor: pointer;
             transition: all 0.15s ease;
-            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .btn-watchlist-toggle:hover:not(:disabled) {
             border-color: #f59e0b;
-            color: #d97706;
+            color: #f59e0b;
         }
 
         .btn-watchlist-toggle.active {
             background: rgba(245, 158, 11, 0.14);
             border-color: #f59e0b;
-            color: #d97706;
+            color: #f59e0b;
         }
 
         .btn-watchlist-toggle:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .watchlist-btn-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .watchlist-notice-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            z-index: 40;
+            padding: 0.4rem 0.7rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+            font-size: 0.76rem;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .modal-stock-search-wrap {
+            display: inline-flex;
+            align-items: center;
+            padding-left: 0.65rem;
+            border-left: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .btn-stock-search {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border-radius: 9px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-stock-search:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
         }
 
         .modal-body {
@@ -1622,6 +1731,7 @@
         .orderbook-list {
             max-height: 220px;
             overflow-y: auto;
+            overscroll-behavior: contain;
             font-family: monospace;
             font-size: 0.85rem;
         }
@@ -2027,13 +2137,29 @@
     <div class="modal-backdrop" id="quoteModal">
         <div class="modal-card trade-modal-card">
             <div class="trade-modal-header">
-                <div class="modal-title-area">
-                    <div class="modal-stock-name" id="modalStockName">-</div>
-                    <div class="modal-sub-info">
-                        <span id="modalStockCode" style="font-family: monospace; font-weight: 700;">-</span>
-                        <span>•</span>
-                        <span class="badge-market" id="modalMarketBadge">KOSPI</span>
-                        <span id="modalExchange">KRX</span>
+                <div style="display: flex; align-items: center; gap: 0.7rem;">
+                    <div class="watchlist-btn-wrap">
+                        <button type="button" class="btn-watchlist-toggle" id="btnToggleWatchlist" title="관심종목 추가" aria-label="관심종목 추가">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        </button>
+                        <div id="modalWatchlistNotice" class="watchlist-notice-popover hidden" role="status" aria-live="polite"></div>
+                    </div>
+                    <div class="modal-title-area">
+                        <div class="modal-stock-name" id="modalStockName">-</div>
+                        <div class="modal-sub-info">
+                            <span id="modalStockCode" style="font-family: monospace; font-weight: 700;">-</span>
+                            <span>•</span>
+                            <span class="badge-market" id="modalMarketBadge">KOSPI</span>
+                            <span id="modalExchange">KRX</span>
+                        </div>
+                    </div>
+                    <div class="modal-stock-search-wrap">
+                        <button type="button" class="btn-stock-search" id="btnStockWebSearch" title="종목 웹 검색 (추후 지원)" aria-label="종목 웹 검색">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <div class="trade-header-price-box">
@@ -2044,11 +2170,9 @@
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
-                    <button type="button" class="btn-watchlist-toggle" id="btnToggleWatchlist" title="관심종목 등록/해제">☆ 관심종목 추가</button>
                     <button class="modal-close-btn" id="modalCloseBtn" aria-label="닫기">✕</button>
                 </div>
             </div>
-            <div id="modalWatchlistNotice" class="hidden" style="padding: 0.45rem 1.4rem; font-size: 0.78rem; font-weight: 600; border-bottom: 1px solid var(--border-color); background: var(--bg-elevated);"></div>
             <div class="trade-modal-body">
                 <div class="trade-modal-grid">
                     <!-- 1열: 캔들 + 거래량 차트 & 당일 시세 요약 -->
@@ -2103,7 +2227,7 @@
                         </div>
                     </div>
 
-                    <!-- 2열: 실시간 호가창 -->
+                    <!-- 2열: 실시간 호가창 + 최근 체결 틱 내역 -->
                     <div class="trade-col-orderbook">
                         <div class="orderbook-section">
                             <div class="orderbook-header">
@@ -2112,6 +2236,18 @@
                             </div>
                             <div class="orderbook-list" id="orderBookList">
                                 <div class="orderbook-empty">실시간 호가 수신 대기 중...</div>
+                            </div>
+                        </div>
+
+                        <div class="ticks-section">
+                            <div class="orderbook-header">
+                                <span>최근 체결 틱 내역</span>
+                                <span id="ticksStatusText">-</span>
+                            </div>
+                            <div class="ticks-list-wrap">
+                                <div class="ticks-list" id="ticksList">
+                                    <div class="orderbook-empty">체결 내역 대기 중...</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2264,11 +2400,12 @@
 
     <!-- Footer -->
     <footer>
-        <p>StockLab - High-Performance Real-Time Simulation Trading Platform | Powered by ASP.NET Core (.NET 10.0)</p>
+        <p>StockLab - High-Performance Real-Time Simulation Trading Platform | Powered by ASP.NET Core (.NET 10.0) | Charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary); text-decoration: underline;">TradingView</a> (Lightweight Charts, Apache-2.0)</p>
     </footer>
 
     <script src="/client-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
     <script>
         // @ts-nocheck
         const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
@@ -3865,6 +4002,65 @@
             renderOrderBook(status);
         });
 
+        quoteHubConnection.on('ReceiveRealtimeTick', (tick) => {
+            if (!tick || !currentModalCode) return;
+            if (String(tick.stockCode || '').toUpperCase() !== String(currentModalCode).toUpperCase()) return;
+
+            lastQuoteFetchTime = Date.now();
+            syncRefreshButtonState();
+
+            const price = Number(tick.price || 0);
+            if (price > 0) {
+                updateMasterSnapshotPrice(tick.stockCode, price);
+                updateTableRowPrice(tick.stockCode, price, tick.currency);
+
+                const isUsd = tick.currency === 'USD';
+                const formatNum = (num, minDec = isUsd ? 2 : 0, maxDec = isUsd ? 4 : 0) =>
+                    Number(num).toLocaleString(undefined, { minimumFractionDigits: minDec, maximumFractionDigits: maxDec });
+                const currSign = isUsd ? '$' : '￦';
+
+                modalCurrentPrice.textContent = isUsd ? `$${formatNum(price)}` : `${formatNum(price)} 원`;
+
+                const change = Number(tick.priceChange || 0);
+                const rate = Number(tick.changeRate || 0);
+                const absRate = Math.abs(rate).toFixed(2);
+                const isUp = rate > 0 || (rate === 0 && change > 0);
+                const isDown = rate < 0 || (rate === 0 && change < 0);
+
+                if (isUp) {
+                    modalCurrentPrice.style.color = "#ef4444";
+                    modalChangeBadge.className = "modal-change-badge badge-up";
+                    modalPriceChange.textContent = `▲ ${formatNum(Math.abs(change))}${currSign}`;
+                    modalChangeRate.textContent = `(+${absRate}%)`;
+                } else if (isDown) {
+                    modalCurrentPrice.style.color = "#3b82f6";
+                    modalChangeBadge.className = "modal-change-badge badge-down";
+                    modalPriceChange.textContent = `▼ ${formatNum(Math.abs(change))}${currSign}`;
+                    modalChangeRate.textContent = `(-${absRate}%)`;
+                } else {
+                    modalCurrentPrice.style.color = "var(--text-primary)";
+                    modalChangeBadge.className = "modal-change-badge badge-flat";
+                    modalPriceChange.textContent = `0 ${currSign}`;
+                    modalChangeRate.textContent = `(0.00%)`;
+                }
+
+                if (Number(tick.totalVolume) > 0) {
+                    modalVolume.textContent = `${Number(tick.totalVolume).toLocaleString()} 주`;
+                }
+                if (tick.time) {
+                    modalUpdatedAt.textContent = `기준 시각 : ${tick.time}`;
+                }
+
+                updateTradeChartWithLivePrice(tick.stockCode, price, {
+                    timeStr: tick.time,
+                    tickVolume: tick.volume,
+                    totalVolume: tick.totalVolume
+                });
+            }
+
+            appendRealtimeTick(tick);
+        });
+
         quoteHubConnection.onreconnected(() => {
             if (currentModalCode && quoteHubConnection.state === signalR.HubConnectionState.Connected) {
                 quoteHubConnection.invoke('RegisterStock', currentModalCode)
@@ -3930,11 +4126,13 @@
             asksReversed.forEach(level => {
                 const row = document.createElement('div');
                 row.className = 'orderbook-row orderbook-ask';
+                row.title = '클릭 시 주문 단가에 반영';
                 row.innerHTML = `
                     <span>${Number(level.quantity).toLocaleString()}</span>
                     <span style="text-align:center; font-weight:700;">${formatPrice(level.price)} ${currSign}</span>
                     <span style="text-align:right; font-size:0.75rem;">매도</span>
                 `;
+                row.addEventListener('click', () => applyOrderBookPriceToInput(level.price));
                 orderBookList.appendChild(row);
             });
 
@@ -3942,11 +4140,13 @@
             (status.bids || []).forEach(level => {
                 const row = document.createElement('div');
                 row.className = 'orderbook-row orderbook-bid';
+                row.title = '클릭 시 주문 단가에 반영';
                 row.innerHTML = `
                     <span style="font-size:0.75rem;">매수</span>
                     <span style="text-align:center; font-weight:700;">${formatPrice(level.price)} ${currSign}</span>
                     <span style="text-align:right;">${Number(level.quantity).toLocaleString()}</span>
                 `;
+                row.addEventListener('click', () => applyOrderBookPriceToInput(level.price));
                 orderBookList.appendChild(row);
             });
 
@@ -3961,8 +4161,122 @@
             }
         }
 
+        function applyOrderBookPriceToInput(price) {
+            if (!tradePriceInput || !(Number(price) > 0)) return;
+            const limitBtn = tradeConditionGroup?.querySelector('[data-condition="2"]');
+            if (limitBtn) limitBtn.click();
+            tradePriceInput.disabled = false;
+            tradePriceInput.value = String(price);
+        }
+
+        const ticksListEl = document.getElementById('ticksList');
+        const ticksStatusTextEl = document.getElementById('ticksStatusText');
+        let currentModalTicks = [];
+        let currentModalBasePrice = 0;
+
+        function renderTicksList(ticks) {
+            if (!ticksListEl) return;
+            if (!Array.isArray(ticks) || ticks.length === 0) {
+                ticksListEl.innerHTML = '<div class="orderbook-empty">체결 틱 내역이 없습니다.</div>';
+                if (ticksStatusTextEl) ticksStatusTextEl.textContent = '0건';
+                return;
+            }
+
+            const headerHtml = `
+                <div class="tick-row tick-row-head">
+                    <span>시각</span>
+                    <span style="text-align:right;">체결가</span>
+                    <span style="text-align:right;">체결강도</span>
+                    <span style="text-align:right;">체결량</span>
+                </div>
+            `;
+            const rowsHtml = ticks.map(t => {
+                const isUsd = t.currency === 'USD';
+                const priceNum = Number(t.price || 0);
+                const strengthNum = Number(t.strength || 0);
+                const formattedPrice = priceNum.toLocaleString(undefined, {
+                    minimumFractionDigits: isUsd ? 2 : 0,
+                    maximumFractionDigits: isUsd ? 4 : 0
+                });
+                const strengthCls = strengthNum > 100 ? 'color:#ef4444;' : (strengthNum > 0 && strengthNum < 100 ? 'color:#3b82f6;' : 'color:var(--text-muted);');
+                const strengthText = strengthNum > 0 ? `${strengthNum.toFixed(1)}%` : '-';
+                const volText = Number(t.volume || 0) > 0 ? Number(t.volume).toLocaleString() : '-';
+                return `
+                    <div class="tick-row">
+                        <span style="color:var(--text-muted);">${t.time || '-'}</span>
+                        <span style="text-align:right; font-weight:700;">${isUsd ? '$' : ''}${formattedPrice}</span>
+                        <span style="text-align:right; ${strengthCls}">${strengthText}</span>
+                        <span style="text-align:right; color:var(--text-secondary);">${volText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            ticksListEl.innerHTML = headerHtml + rowsHtml;
+            if (ticksStatusTextEl) ticksStatusTextEl.textContent = `최근 ${ticks.length}틱`;
+        }
+
+        function appendRealtimeTick(tick) {
+            if (!currentModalCode || !tick || !(Number(tick.price) > 0)) return;
+            const head = currentModalTicks[0];
+            if (head &&
+                head.time === tick.time &&
+                Number(head.price) === Number(tick.price) &&
+                Number(head.volume) === Number(tick.volume)) {
+                return;
+            }
+
+            currentModalTicks = [
+                {
+                    time: tick.time || '-',
+                    price: Number(tick.price),
+                    priceChange: Number(tick.priceChange || 0),
+                    changeRate: Number(tick.changeRate || 0),
+                    strength: Number(tick.strength || 0),
+                    volume: Number(tick.volume || 0),
+                    currency: tick.currency || 'KRW'
+                },
+                ...currentModalTicks
+            ].slice(0, 40);
+            renderTicksList(currentModalTicks);
+        }
+
+        async function loadRecentTicks(code) {
+            if (!code || !ticksListEl) return;
+            if (!isKisFeatureAvailable()) {
+                currentModalTicks = [];
+                if (ticksStatusTextEl) ticksStatusTextEl.textContent = '연동 필요';
+                ticksListEl.innerHTML = '<div class="orderbook-empty">KIS API 연동 후 체결 틱을 확인할 수 있습니다.</div>';
+                return;
+            }
+
+            if (ticksStatusTextEl) ticksStatusTextEl.textContent = '조회 중...';
+            try {
+                const res = await fetch(`/api/stocks/${encodeURIComponent(code)}/ticks`);
+                const json = await res.json().catch(() => null);
+                if (currentModalCode !== code) return;
+
+                if (res.ok && json?.success && Array.isArray(json.data)) {
+                    currentModalTicks = json.data.slice(0, 40);
+                    renderTicksList(currentModalTicks);
+                } else {
+                    currentModalTicks = [];
+                    renderTicksList([]);
+                }
+            } catch {
+                if (currentModalCode === code) {
+                    currentModalTicks = [];
+                    renderTicksList([]);
+                }
+            }
+        }
+
         function closeQuoteModal() {
             quoteModal.classList.remove('open');
+            document.body.style.overflow = '';
+            if (watchlistNoticeTimer) {
+                clearTimeout(watchlistNoticeTimer);
+                watchlistNoticeTimer = null;
+            }
             if (refreshCooldownTimer) {
                 clearTimeout(refreshCooldownTimer);
                 refreshCooldownTimer = null;
@@ -3972,6 +4286,8 @@
                     .catch(err => console.error('[SignalR] 등록 해제 오류:', err));
             }
             currentModalCode = null;
+            currentModalBasePrice = 0;
+            currentModalTicks = [];
         }
 
         async function refreshQuoteWithCooldown() {
@@ -3993,9 +4309,14 @@
         modalCloseBtn.addEventListener('click', closeQuoteModal);
 
         window.__watchlistCodes = new Set();
+        let watchlistNoticeTimer = null;
 
         function showModalWatchlistNotice(message, isSuccess = true) {
             if (!modalWatchlistNotice) return;
+            if (watchlistNoticeTimer) {
+                clearTimeout(watchlistNoticeTimer);
+                watchlistNoticeTimer = null;
+            }
             if (!message) {
                 modalWatchlistNotice.textContent = '';
                 modalWatchlistNotice.classList.add('hidden');
@@ -4004,6 +4325,10 @@
             modalWatchlistNotice.textContent = message;
             modalWatchlistNotice.style.color = isSuccess ? '#16a34a' : '#ef4444';
             modalWatchlistNotice.classList.remove('hidden');
+            watchlistNoticeTimer = setTimeout(() => {
+                modalWatchlistNotice.classList.add('hidden');
+                watchlistNoticeTimer = null;
+            }, 2200);
         }
 
         function syncModalWatchlistButtonUI(code) {
@@ -4011,7 +4336,11 @@
             const normCode = (code || '').toUpperCase();
             const isSaved = normCode && window.__watchlistCodes.has(normCode);
             btnToggleWatchlist.classList.toggle('active', Boolean(isSaved));
-            btnToggleWatchlist.textContent = isSaved ? '★ 관심종목 등록됨' : '☆ 관심종목 추가';
+            btnToggleWatchlist.title = isSaved ? '관심종목 해제' : '관심종목 추가';
+            btnToggleWatchlist.setAttribute('aria-label', btnToggleWatchlist.title);
+            btnToggleWatchlist.innerHTML = isSaved
+                ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>'
+                : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>';
         }
 
         window.__syncUserWatchlistCodes = async () => {
@@ -4119,6 +4448,313 @@
         const tradeConditionGroup = document.getElementById('tradeConditionGroup');
         const tradePriceInput = document.getElementById('tradePriceInput');
         const chartPeriodGroup = document.getElementById('chartPeriodGroup');
+        const tradeCandleChartWrap = document.getElementById('tradeCandleChartWrap');
+        const chartStatusText = document.getElementById('chartStatusText');
+
+        let activeChartPeriod = 'D';
+        let tradeChartInstance = null;
+        let tradeCandleSeries = null;
+        let tradeVolumeSeries = null;
+        let tradeChartResizeObserver = null;
+        let lastTradeCandle = null;
+        let lastTradeVolume = null;
+        let activeChartIsIntraday = false;
+        let activeChartStockCode = null;
+
+        function disposeTradeChart() {
+            if (tradeChartResizeObserver) {
+                tradeChartResizeObserver.disconnect();
+                tradeChartResizeObserver = null;
+            }
+            if (tradeChartInstance) {
+                tradeChartInstance.remove();
+                tradeChartInstance = null;
+                tradeCandleSeries = null;
+                tradeVolumeSeries = null;
+            }
+            lastTradeCandle = null;
+            lastTradeVolume = null;
+            activeChartIsIntraday = false;
+            activeChartStockCode = null;
+        }
+
+        function getKstMinuteBucketSeconds(timeStr) {
+            const kstNow = new Date(Date.now() + 9 * 3600 * 1000);
+            const match = typeof timeStr === 'string' ? timeStr.trim().match(/^(\d{2}):(\d{2})/) : null;
+            if (match) {
+                const hh = Number(match[1]);
+                const mm = Number(match[2]);
+                if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+                    return Math.floor(Date.UTC(
+                        kstNow.getUTCFullYear(),
+                        kstNow.getUTCMonth(),
+                        kstNow.getUTCDate(),
+                        hh,
+                        mm,
+                        0
+                    ) / 1000);
+                }
+            }
+            return Math.floor(kstNow.getTime() / 60000) * 60;
+        }
+
+        function updateTradeChartWithLivePrice(code, price, { timeStr = null, tickVolume = 0, totalVolume = null } = {}) {
+            const numPrice = Number(price);
+            if (!code || !(numPrice > 0) || !tradeCandleSeries || !lastTradeCandle) return;
+            if (String(activeChartStockCode || '').toUpperCase() !== String(code).toUpperCase()) return;
+
+            const addVol = Number(tickVolume) > 0 ? Number(tickVolume) : 0;
+
+            if (activeChartIsIntraday) {
+                const bucketTime = getKstMinuteBucketSeconds(timeStr);
+                if (bucketTime > lastTradeCandle.time && (bucketTime - lastTradeCandle.time) <= 3600) {
+                    lastTradeCandle = {
+                        time: bucketTime,
+                        open: numPrice,
+                        high: numPrice,
+                        low: numPrice,
+                        close: numPrice
+                    };
+                    lastTradeVolume = {
+                        time: bucketTime,
+                        value: addVol,
+                        color: 'rgba(239, 68, 68, 0.45)'
+                    };
+                    tradeCandleSeries.update(lastTradeCandle);
+                    if (tradeVolumeSeries) tradeVolumeSeries.update(lastTradeVolume);
+                    return;
+                }
+            }
+
+            lastTradeCandle = {
+                ...lastTradeCandle,
+                high: Math.max(Number(lastTradeCandle.high), numPrice),
+                low: Math.min(Number(lastTradeCandle.low), numPrice),
+                close: numPrice
+            };
+            tradeCandleSeries.update(lastTradeCandle);
+
+            if (tradeVolumeSeries && lastTradeVolume) {
+                let nextVol = Number(lastTradeVolume.value || 0);
+                if (activeChartIsIntraday) {
+                    nextVol += addVol;
+                } else if (activeChartPeriod === 'D' && Number(totalVolume) > 0) {
+                    nextVol = Number(totalVolume);
+                } else {
+                    nextVol += addVol;
+                }
+                lastTradeVolume = {
+                    ...lastTradeVolume,
+                    value: nextVol,
+                    color: lastTradeCandle.close >= lastTradeCandle.open
+                        ? 'rgba(239, 68, 68, 0.45)'
+                        : 'rgba(59, 130, 246, 0.45)'
+                };
+                tradeVolumeSeries.update(lastTradeVolume);
+            }
+        }
+
+        function renderTradeChartMessage(msg) {
+            disposeTradeChart();
+            if (tradeCandleChartWrap) {
+                tradeCandleChartWrap.innerHTML = `<span style="padding: 1rem; text-align: center;">${msg}</span>`;
+            }
+        }
+
+        function ensureTradeChartInitialized(isIntraday, isUsd) {
+            if (!tradeCandleChartWrap || typeof LightweightCharts === 'undefined') return false;
+
+            const isDark = document.body.classList.contains('dark-mode') || document.body.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#cbd5e1' : '#475569';
+            const gridColor = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.22)';
+            const bgColor = isDark ? '#0f172a' : '#ffffff';
+
+            if (!tradeChartInstance) {
+                const formatChartTime = (t) => {
+                    if (t && typeof t === 'object' && 'year' in t) {
+                        const mm = String(t.month).padStart(2, '0');
+                        const dd = String(t.day).padStart(2, '0');
+                        return `${t.year}-${mm}-${dd}`;
+                    }
+                    const d = new Date(Number(t) * 1000);
+                    const y = d.getUTCFullYear();
+                    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getUTCDate()).padStart(2, '0');
+                    if (activeChartIsIntraday) {
+                        const hh = String(d.getUTCHours()).padStart(2, '0');
+                        const min = String(d.getUTCMinutes()).padStart(2, '0');
+                        return `${y}-${mm}-${dd} ${hh}:${min}`;
+                    }
+                    return `${y}-${mm}-${dd}`;
+                };
+
+                tradeCandleChartWrap.innerHTML = '';
+                tradeChartInstance = LightweightCharts.createChart(tradeCandleChartWrap, {
+                    width: tradeCandleChartWrap.clientWidth || 520,
+                    height: tradeCandleChartWrap.clientHeight || 280,
+                    layout: {
+                        background: { color: bgColor },
+                        textColor,
+                        attributionLogo: false
+                    },
+                    localization: {
+                        timeFormatter: formatChartTime
+                    },
+                    grid: {
+                        vertLines: { color: gridColor },
+                        horzLines: { color: gridColor }
+                    },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                    rightPriceScale: { borderColor: gridColor },
+                    timeScale: {
+                        borderColor: gridColor,
+                        timeVisible: isIntraday,
+                        secondsVisible: false,
+                        tickMarkFormatter: (time, tickMarkType) => {
+                            const d = (time && typeof time === 'object' && 'year' in time)
+                                ? new Date(Date.UTC(time.year, time.month - 1, time.day))
+                                : new Date(Number(time) * 1000);
+                            const y = d.getUTCFullYear();
+                            const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+                            const dd = String(d.getUTCDate()).padStart(2, '0');
+                            const hh = String(d.getUTCHours()).padStart(2, '0');
+                            const min = String(d.getUTCMinutes()).padStart(2, '0');
+                            const ss = String(d.getUTCSeconds()).padStart(2, '0');
+                            switch (tickMarkType) {
+                                case 0: return `${y}년`;
+                                case 1: return `${y}-${mm}`;
+                                case 2: return `${mm}-${dd}`;
+                                case 3: return `${hh}:${min}`;
+                                case 4: return `${hh}:${min}:${ss}`;
+                                default: return `${y}-${mm}-${dd}`;
+                            }
+                        }
+                    }
+                });
+
+                tradeCandleSeries = tradeChartInstance.addCandlestickSeries({
+                    upColor: '#ef4444',
+                    downColor: '#3b82f6',
+                    borderVisible: false,
+                    wickUpColor: '#ef4444',
+                    wickDownColor: '#3b82f6',
+                    priceFormat: {
+                        type: 'price',
+                        precision: isUsd ? 2 : 0,
+                        minMove: isUsd ? 0.01 : 1
+                    }
+                });
+
+                tradeVolumeSeries = tradeChartInstance.addHistogramSeries({
+                    priceFormat: { type: 'volume' },
+                    priceScaleId: ''
+                });
+                tradeChartInstance.priceScale('').applyOptions({
+                    scaleMargins: { top: 0.78, bottom: 0 }
+                });
+
+                if (typeof ResizeObserver !== 'undefined') {
+                    tradeChartResizeObserver = new ResizeObserver(() => {
+                        if (tradeChartInstance && tradeCandleChartWrap) {
+                            tradeChartInstance.applyOptions({
+                                width: tradeCandleChartWrap.clientWidth,
+                                height: tradeCandleChartWrap.clientHeight
+                            });
+                        }
+                    });
+                    tradeChartResizeObserver.observe(tradeCandleChartWrap);
+                }
+            } else {
+                tradeChartInstance.applyOptions({
+                    layout: { background: { color: bgColor }, textColor },
+                    grid: { vertLines: { color: gridColor }, horzLines: { color: gridColor } },
+                    rightPriceScale: { borderColor: gridColor },
+                    timeScale: { borderColor: gridColor, timeVisible: isIntraday, secondsVisible: false }
+                });
+                tradeCandleSeries?.applyOptions({
+                    priceFormat: {
+                        type: 'price',
+                        precision: isUsd ? 2 : 0,
+                        minMove: isUsd ? 0.01 : 1
+                    }
+                });
+            }
+
+            return true;
+        }
+
+        async function loadTradeCandleChart(code, period = activeChartPeriod) {
+            if (!code) return;
+            activeChartPeriod = period;
+
+            if (!isKisFeatureAvailable()) {
+                if (chartStatusText) chartStatusText.textContent = 'KIS API 연동 필요';
+                renderTradeChartMessage('KIS API 연동 후 캔들 차트를 확인할 수 있습니다.');
+                return;
+            }
+
+            if (chartStatusText) chartStatusText.textContent = '차트 불러오는 중...';
+            try {
+                const res = await fetch(`/api/stocks/${encodeURIComponent(code)}/candles?period=${encodeURIComponent(period)}`);
+                const json = await res.json().catch(() => null);
+                if (currentModalCode !== code || activeChartPeriod !== period) return;
+
+                if (!res.ok || !json?.success || !json.data) {
+                    const errMsg = json?.error?.message || '차트 데이터를 불러올 수 없습니다.';
+                    if (chartStatusText) chartStatusText.textContent = '조회 실패';
+                    renderTradeChartMessage(errMsg);
+                    return;
+                }
+
+                const data = json.data;
+                const candles = Array.isArray(data.candles) ? data.candles : [];
+                if (candles.length === 0) {
+                    if (chartStatusText) chartStatusText.textContent = '데이터 없음';
+                    renderTradeChartMessage('표시할 캔들 데이터가 없습니다.');
+                    return;
+                }
+
+                const isUsd = data.currency === 'USD';
+                if (!ensureTradeChartInitialized(Boolean(data.isIntraday), isUsd)) {
+                    renderTradeChartMessage('차트 라이브러리를 불러오지 못했습니다.');
+                    return;
+                }
+
+                const candlePoints = candles.map(c => ({
+                    time: Number(c.time),
+                    open: Number(c.open),
+                    high: Number(c.high),
+                    low: Number(c.low),
+                    close: Number(c.close)
+                }));
+                const volumePoints = candles.map(c => ({
+                    time: Number(c.time),
+                    value: Number(c.volume || 0),
+                    color: Number(c.close) >= Number(c.open)
+                        ? 'rgba(239, 68, 68, 0.45)'
+                        : 'rgba(59, 130, 246, 0.45)'
+                }));
+
+                tradeCandleSeries.setData(candlePoints);
+                tradeVolumeSeries.setData(volumePoints);
+                tradeChartInstance.timeScale().fitContent();
+
+                activeChartStockCode = code;
+                activeChartIsIntraday = Boolean(data.isIntraday);
+                lastTradeCandle = { ...candlePoints[candlePoints.length - 1] };
+                lastTradeVolume = { ...volumePoints[volumePoints.length - 1] };
+
+                const periodLabels = { '1M': '분봉', D: '일봉', W: '주봉', M: '월봉', Y: '년봉' };
+                if (chartStatusText) {
+                    chartStatusText.textContent = `${periodLabels[data.period] || data.period} · ${candles.length}개`;
+                }
+            } catch {
+                if (currentModalCode === code && activeChartPeriod === period) {
+                    if (chartStatusText) chartStatusText.textContent = '통신 오류';
+                    renderTradeChartMessage('차트 데이터를 불러오는 중 오류가 발생했습니다.');
+                }
+            }
+        }
 
         tradeTabBuy?.addEventListener('click', () => {
             tradeTabBuy.classList.add('active-buy');
@@ -4148,6 +4784,12 @@
             btn.addEventListener('click', () => {
                 chartPeriodGroup.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                const nextPeriod = btn.dataset.period || 'D';
+                if (currentModalCode) {
+                    loadTradeCandleChart(currentModalCode, nextPeriod);
+                } else {
+                    activeChartPeriod = nextPeriod;
+                }
             });
         });
 
@@ -4163,9 +4805,12 @@
         async function openQuoteModal(code) {
             if (!code) return;
             currentModalCode = code;
+            currentModalBasePrice = 0;
+            currentModalTicks = [];
 
             // 모달 초기화 및 로딩 표시
             quoteModal.classList.add('open');
+            document.body.style.overflow = 'hidden';
             showModalWatchlistNotice('');
             syncModalWatchlistButtonUI(code);
 
@@ -4206,13 +4851,19 @@
                 modalUpdatedAt.textContent = "마스터 기준가 표시 중 (실시간 시세는 KIS API 연동 필요)";
                 orderBookStatus.textContent = 'KIS API 연동 필요';
                 orderBookList.innerHTML = '<div class="orderbook-empty">실시간 시세와 호가는 로그인 및 KIS API 연동 후 이용할 수 있습니다.</div>';
+                loadTradeCandleChart(code, activeChartPeriod);
+                loadRecentTicks(code);
                 return;
             }
 
-            // 클릭 시 초기 시세 1회 조회
+            // 클릭 시 초기 시세 1회 조회 및 캔들 차트·최근 체결 틱 로드
             lastQuoteFetchTime = Date.now();
             syncRefreshButtonState();
-            await fetchQuoteData(code);
+            await Promise.all([
+                fetchQuoteData(code),
+                loadTradeCandleChart(code, activeChartPeriod),
+                loadRecentTicks(code)
+            ]);
 
             // 시세 조회 도중 모달이 닫혔거나 다른 종목으로 변경되었으면 소켓 등록 중단
             if (currentModalCode !== code) return;
@@ -4248,6 +4899,18 @@
                 }
 
                 const q = json.data;
+                if (Number(q.basePrice) > 0) {
+                    currentModalBasePrice = Number(q.basePrice);
+                    if (currentModalTicks.some(t => t.isSocketTick)) {
+                        currentModalTicks = currentModalTicks.map(t => {
+                            if (!t.isSocketTick) return t;
+                            const diff = Number(t.price) - currentModalBasePrice;
+                            const rate = (diff / currentModalBasePrice) * 100;
+                            return { ...t, priceChange: diff, changeRate: rate };
+                        });
+                        renderTicksList(currentModalTicks);
+                    }
+                }
                 if (Number(q.currentPrice) > 0) {
                     updateMasterSnapshotPrice(q.stockCode, q.currentPrice);
                 }
@@ -4301,6 +4964,10 @@
 
                 // 테이블 행 데이터가 있으면 실시간 가격 동기화
                 updateTableRowPrice(code, q.currentPrice, q.currency);
+                updateTradeChartWithLivePrice(q.stockCode || code, q.currentPrice, {
+                    timeStr: formattedBaseTime,
+                    totalVolume: q.volume
+                });
             } catch (err) {
                 console.error("시세 조회 오류:", err);
             }

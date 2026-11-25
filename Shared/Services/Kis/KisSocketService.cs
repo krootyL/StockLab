@@ -32,6 +32,8 @@ public class KisSocketService : IHostedService
     private readonly ConcurrentDictionary<string, CachedOrderBook> _realtimeStockCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, HashSet<string>> _subscribersByStock = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, HashSet<string>> _stocksByConnection = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> _tickSubscribersByStock = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _tickStockByConnection = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _socketLock = new(1, 1);
 
     private ClientWebSocket? _webSocket;
@@ -168,12 +170,15 @@ public class KisSocketService : IHostedService
             var nextCount = subscribers.Count;
             _logger.LogInformation("[실시간 호가] 종목({StockCode}) 열람자 수 증가: {Count}명", code, nextCount);
 
-            // 최초 열람자(0 -> 1)일 때만 KIS 소켓 연결 및 등록 요청 전송
+            // 최초 열람자(0 -> 1)일 때만 KIS 호가 소켓 연결 및 등록 요청 전송 (관심종목과 중복 시 재전송 생략)
             if (nextCount == 1)
             {
                 await EnsureConnectedAsync(cancellationToken);
-                await SendSubscriptionPacketAsync(code, "1", cancellationToken);
+                await SendSubscriptionPacketAsync(code, "1", isTick: false, cancellationToken);
             }
+
+            // 상세 모달을 연 종목에 한해 실시간 체결 TR(H0STCNT0/HDFSCNT0) 1건 추가 연결
+            await AddTickConnectionLockedAsync(code, connectionId, cancellationToken);
         }
         finally
         {
@@ -193,6 +198,7 @@ public class KisSocketService : IHostedService
         try
         {
             await RemoveSubscriptionLockedAsync(code, connectionId, null, cancellationToken);
+            await RemoveTickConnectionLockedAsync(code, connectionId, null, cancellationToken);
         }
         finally
         {
@@ -201,8 +207,8 @@ public class KisSocketService : IHostedService
     }
 
     /// <summary>
-    /// 클라이언트의 관심종목 목록 전체를 로컬 KIS 토큰 기반 WebSocket에 다중 구독·동기화합니다.
-    /// 상세 모달 단일 구독(connectionId)과 간섭하지 않도록 "{connectionId}:watchlist" 구독 키로 분리 관리합니다.
+    /// 클라이언트의 관심종목 목록 전체를 로컬 KIS 토큰 기반 WebSocket에 다중 소켓 연결·동기화합니다.
+    /// 상세 모달 단일 연결(connectionId)과 간섭하지 않도록 "{connectionId}:watchlist" 연결 키로 분리 관리합니다.
     /// </summary>
     public async Task SyncWatchlistStocksAsync(
         IReadOnlyCollection<string> stockCodes,
@@ -216,7 +222,7 @@ public class KisSocketService : IHostedService
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Select(c => c.Trim().ToUpperInvariant())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(40) // KIS 단일 웹소켓 세션당 최대 구독 한도 보호
+            .Take(30) // KIS 단일 웹소켓 41슬롯 중 관심종목은 최대 30개 배정, 잔여 슬롯은 모달/거래 종목용으로 확보
             .ToList();
 
         var desiredSet = new HashSet<string>(desiredCodes, StringComparer.OrdinalIgnoreCase);
@@ -309,7 +315,7 @@ public class KisSocketService : IHostedService
                 if (nextCount == 1)
                 {
                     await EnsureConnectedAsync(cancellationToken);
-                    await SendSubscriptionPacketAsync(code, "1", cancellationToken);
+                    await SendSubscriptionPacketAsync(code, "1", isTick: false, cancellationToken);
                 }
             }
         }
@@ -321,7 +327,7 @@ public class KisSocketService : IHostedService
 
     /// <summary>
     /// 브라우저 새로고침, 탭 종료, 서버/네트워크 재연결 등으로 SignalR 연결이 끊어졌을 때
-    /// 해당 클라이언트가 열람 중이던 모든 종목(단일 모달 및 관심종목)의 구독을 자동 정리한다.
+    /// 해당 클라이언트가 열람 중이던 모든 종목(단일 모달 및 관심종목)의 소켓 연결을 자동 정리한다.
     /// </summary>
     public async Task RemoveConnectionAsync(string connectionId, CancellationToken cancellationToken = default)
     {
@@ -346,10 +352,73 @@ public class KisSocketService : IHostedService
 
                 _stocksByConnection.Remove(key);
             }
+
+            if (_tickStockByConnection.TryGetValue(connectionId, out var tickCode))
+            {
+                await RemoveTickConnectionLockedAsync(tickCode, connectionId, "연결 종료", cancellationToken);
+            }
         }
         finally
         {
             _socketLock.Release();
+        }
+    }
+
+    private async Task AddTickConnectionLockedAsync(
+        string code,
+        string connectionId,
+        CancellationToken cancellationToken)
+    {
+        if (_tickStockByConnection.TryGetValue(connectionId, out var prevCode) &&
+            !prevCode.Equals(code, StringComparison.OrdinalIgnoreCase))
+        {
+            await RemoveTickConnectionLockedAsync(prevCode, connectionId, "종목 전환", cancellationToken);
+        }
+
+        _tickStockByConnection[connectionId] = code;
+
+        if (!_tickSubscribersByStock.TryGetValue(code, out var tickSubscribers))
+        {
+            tickSubscribers = new HashSet<string>(StringComparer.Ordinal);
+            _tickSubscribersByStock[code] = tickSubscribers;
+        }
+
+        if (!tickSubscribers.Add(connectionId))
+        {
+            return;
+        }
+
+        if (tickSubscribers.Count == 1)
+        {
+            await EnsureConnectedAsync(cancellationToken);
+            await SendSubscriptionPacketAsync(code, "1", isTick: true, cancellationToken);
+        }
+    }
+
+    private async Task RemoveTickConnectionLockedAsync(
+        string code,
+        string connectionId,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        if (_tickStockByConnection.TryGetValue(connectionId, out var currentTickCode) &&
+            currentTickCode.Equals(code, StringComparison.OrdinalIgnoreCase))
+        {
+            _tickStockByConnection.Remove(connectionId);
+        }
+
+        if (!_tickSubscribersByStock.TryGetValue(code, out var tickSubscribers) ||
+            !tickSubscribers.Remove(connectionId))
+        {
+            return;
+        }
+
+        var reasonPrefix = string.IsNullOrWhiteSpace(reason) ? string.Empty : $"({reason}) ";
+        if (tickSubscribers.Count <= 0)
+        {
+            _tickSubscribersByStock.Remove(code);
+            _logger.LogInformation("[실시간 체결] {Reason}종목({StockCode}) 열람자 0명 -> KIS 체결 소켓 해제 전송", reasonPrefix, code);
+            await SendSubscriptionPacketAsync(code, "2", isTick: true, cancellationToken);
         }
     }
 
@@ -379,7 +448,7 @@ public class KisSocketService : IHostedService
         {
             _subscribersByStock.Remove(code);
             _logger.LogInformation("[실시간 호가] {Reason}종목({StockCode}) 열람자 0명 -> KIS 등록 해제 전송", reasonPrefix, code);
-            await SendSubscriptionPacketAsync(code, "2", cancellationToken);
+            await SendSubscriptionPacketAsync(code, "2", isTick: false, cancellationToken);
         }
         else
         {
@@ -402,7 +471,7 @@ public class KisSocketService : IHostedService
         _receiveTask = Task.Run(() => ReceiveLoopAsync(_webSocket, _receiveCts.Token));
     }
 
-    private async Task SendSubscriptionPacketAsync(string stockCode, string trType, CancellationToken cancellationToken)
+    private async Task SendSubscriptionPacketAsync(string stockCode, string trType, bool isTick, CancellationToken cancellationToken)
     {
         if (_webSocket == null || _webSocket.State != WebSocketState.Open) return;
 
@@ -414,7 +483,9 @@ public class KisSocketService : IHostedService
         }
 
         var isOverseas = masterItem.MarketType == "USA";
-        var trId = isOverseas ? "HDFSASP0" : "H0STASP0";
+        var trId = isTick
+            ? (isOverseas ? "HDFSCNT0" : "H0STCNT0")
+            : (isOverseas ? "HDFSASP0" : "H0STASP0");
         var trKey = isOverseas ? $"D{masterItem.ExchangeCode}{masterItem.ShortCode}" : masterItem.ShortCode;
 
         var payload = new
@@ -440,8 +511,8 @@ public class KisSocketService : IHostedService
         var bytes = Encoding.UTF8.GetBytes(json);
 
         await _webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cancellationToken);
-        _logger.LogInformation("{Prefix} 실시간 호가 {Action} 전송 (TR_ID: {TrId}, TR_KEY: {TrKey})",
-            LogConstants.KisApiPrefix, trType == "1" ? "등록" : "해제", trId, trKey);
+        _logger.LogInformation("{Prefix} 실시간 {Kind} {Action} 전송 (TR_ID: {TrId}, TR_KEY: {TrKey})",
+            LogConstants.KisApiPrefix, isTick ? "체결" : "호가", trType == "1" ? "연결" : "해제", trId, trKey);
     }
 
     private async Task ReceiveLoopAsync(ClientWebSocket ws, CancellationToken stoppingToken)
@@ -501,7 +572,28 @@ public class KisSocketService : IHostedService
         if (parts.Length < 4) return;
 
         var trId = parts[1];
+        var dataCount = int.TryParse(parts[2], out var parsedCount) && parsedCount > 0 ? parsedCount : 1;
         var body = parts[3];
+
+        if (trId is "H0STCNT0" or "HDFSCNT0")
+        {
+            var ticks = trId == "H0STCNT0"
+                ? ParseDomesticTicks(body, dataCount)
+                : ParseOverseasTicks(body, dataCount);
+
+            foreach (var tick in ticks)
+            {
+                if (tick.Price > 0)
+                {
+                    _masterStore.UpdatePrice(tick.StockCode, tick.Price);
+                }
+
+                await _hubContext.Clients
+                    .Group($"stock:{tick.StockCode}")
+                    .SendAsync("ReceiveRealtimeTick", tick);
+            }
+            return;
+        }
 
         RealtimeStockStatus? status = trId switch
         {
@@ -608,6 +700,99 @@ public class KisSocketService : IHostedService
             TotalAskSize: ParseLong(fields[8]),
             TotalBidSize: ParseLong(fields[7])
         );
+    }
+
+    private List<RealtimeStockTick> ParseDomesticTicks(string body, int dataCount)
+    {
+        const int fieldCount = 46;
+        var fields = body.Split('^');
+        var ticks = new List<RealtimeStockTick>();
+        var actualCount = Math.Max(1, Math.Min(dataCount, fields.Length / fieldCount > 0 ? fields.Length / fieldCount : 1));
+
+        for (int i = 0; i < actualCount; i++)
+        {
+            var offset = i * fieldCount;
+            if (fields.Length < offset + 14) break;
+
+            var stockCode = fields[offset].Trim();
+            var time = FormatHhMmSs(fields[offset + 1].Trim());
+            var price = ParseDecimal(fields[offset + 2]);
+            if (string.IsNullOrEmpty(stockCode) || price <= 0) continue;
+
+            var sign = fields[offset + 3].Trim();
+            var priceChange = ParseDecimal(fields[offset + 4]);
+            if (sign is "4" or "5" && priceChange > 0) priceChange = -priceChange;
+
+            var changeRate = ParseDecimal(fields[offset + 5]);
+            if (sign is "4" or "5" && changeRate > 0) changeRate = -changeRate;
+
+            var volume = ParseLong(fields[offset + 12]);
+            var totalVolume = ParseLong(fields[offset + 13]);
+            var strength = fields.Length > offset + 18 ? ParseDecimal(fields[offset + 18]) : 0m;
+            var master = _masterStore.TryGetCachedByCode(stockCode);
+
+            ticks.Add(new RealtimeStockTick(
+                StockCode: stockCode,
+                MarketType: master?.MarketType ?? "KOSPI",
+                Currency: "KRW",
+                Time: time,
+                Price: price,
+                PriceChange: priceChange,
+                ChangeRate: changeRate,
+                Volume: volume,
+                TotalVolume: totalVolume,
+                Strength: strength
+            ));
+        }
+
+        return ticks;
+    }
+
+    private List<RealtimeStockTick> ParseOverseasTicks(string body, int dataCount)
+    {
+        const int fieldCount = 27;
+        var fields = body.Split('^');
+        var ticks = new List<RealtimeStockTick>();
+        var actualCount = Math.Max(1, Math.Min(dataCount, fields.Length / fieldCount > 0 ? fields.Length / fieldCount : 1));
+
+        for (int i = 0; i < actualCount; i++)
+        {
+            var offset = i * fieldCount;
+            if (fields.Length < offset + 21) break;
+
+            // fields[0]: RSYM (e.g. DNASNVDA), fields[1]: SYMB (e.g. NVDA)
+            var symbol = fields[offset + 1].Trim();
+            var time = FormatHhMmSs(fields[offset + 7].Trim());
+            var price = ParseDecimal(fields[offset + 11]);
+            if (string.IsNullOrEmpty(symbol) || price <= 0) continue;
+
+            var sign = fields[offset + 12].Trim();
+            var priceChange = ParseDecimal(fields[offset + 13]);
+            if (sign is "4" or "5" && priceChange > 0) priceChange = -priceChange;
+
+            var changeRate = ParseDecimal(fields[offset + 14]);
+            if (sign is "4" or "5" && changeRate > 0) changeRate = -changeRate;
+
+            var volume = ParseLong(fields[offset + 19]);
+            var totalVolume = ParseLong(fields[offset + 20]);
+            var strength = fields.Length > offset + 24 ? ParseDecimal(fields[offset + 24]) : 0m;
+            var master = _masterStore.TryGetCachedByCode(symbol);
+
+            ticks.Add(new RealtimeStockTick(
+                StockCode: symbol,
+                MarketType: master?.MarketType ?? "USA",
+                Currency: "USD",
+                Time: time,
+                Price: price,
+                PriceChange: priceChange,
+                ChangeRate: changeRate,
+                Volume: volume,
+                TotalVolume: totalVolume,
+                Strength: strength
+            ));
+        }
+
+        return ticks;
     }
 
     private static string FormatHhMmSs(string raw)

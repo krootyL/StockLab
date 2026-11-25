@@ -17,3 +17,16 @@ public record RealtimeStockStatus(
     long TotalBidSize
 );
 
+public record RealtimeStockTick(
+    string StockCode,
+    string MarketType,
+    string Currency,
+    string Time,
+    decimal Price,
+    decimal PriceChange,
+    decimal ChangeRate,
+    long Volume,
+    long TotalVolume,
+    decimal Strength = 0m
+);
+

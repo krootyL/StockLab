@@ -10,7 +10,7 @@ namespace StockLab.Services.Account;
 public class AccountService
 {
     public const int MaxStrategiesPerUser = 10;
-    public const int MaxWatchlistItemsPerUser = 50;
+    public const int MaxWatchlistItemsPerUser = 30;
 
     private readonly AppDbContext _db;
     private readonly StockMasterStore _masterStore;
