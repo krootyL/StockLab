@@ -282,6 +282,25 @@
             display: none !important;
         }
 
+        .admin-gear-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .admin-gear-link:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
         /* Top Hero Grid: Left Market Indices & FX (1fr) + Right Credit-Card Profile (420px) */
         .top-hero-grid {
             display: grid;
@@ -1104,12 +1123,286 @@
             background-color: var(--bg-surface);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            width: 90%;
+            width: 92%;
             max-width: 500px;
             box-shadow: var(--shadow-lg);
             overflow: hidden;
             transform: scale(0.95);
             transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .trade-modal-card {
+            width: 96%;
+            max-width: 1140px;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .trade-modal-header {
+            padding: 1rem 1.4rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .trade-header-price-box {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-left: auto;
+            margin-right: 0.5rem;
+        }
+
+        .trade-header-price {
+            font-size: 1.65rem;
+            font-weight: 800;
+            font-family: monospace;
+            line-height: 1.1;
+        }
+
+        .trade-modal-body {
+            padding: 1.15rem 1.4rem 1.3rem;
+            overflow-y: auto;
+        }
+
+        .trade-modal-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.85fr) minmax(280px, 0.95fr);
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .trade-col-chart,
+        .trade-col-orderbook,
+        .trade-col-order {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            min-width: 0;
+        }
+
+        .trade-chart-card {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-surface);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .trade-chart-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.55rem 0.8rem;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .chart-period-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .chart-period-btn {
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 0.25rem 0.55rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+
+        .chart-period-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-surface);
+        }
+
+        .chart-period-btn.active {
+            background: var(--bg-surface);
+            border-color: var(--border-color);
+            color: var(--accent-primary);
+        }
+
+        .trade-chart-canvas {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            background: var(--bg-surface);
+        }
+
+        .trade-col-orderbook .orderbook-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .trade-col-orderbook .orderbook-list {
+            flex: 1;
+            max-height: 445px;
+        }
+
+        .trade-order-card {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-surface);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            flex: 1;
+        }
+
+        .trade-side-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+            background: var(--bg-elevated);
+            padding: 0.25rem;
+            border-radius: 8px;
+        }
+
+        .trade-side-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            font-weight: 700;
+            padding: 0.5rem 0.6rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .trade-side-tab.active-buy {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .trade-side-tab.active-sell {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+
+        .trade-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .trade-field-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .trade-input,
+        .trade-select {
+            width: 100%;
+            padding: 0.52rem 0.7rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            font-size: 0.86rem;
+            font-family: inherit;
+        }
+
+        .trade-input:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .trade-condition-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+        }
+
+        .trade-cond-btn {
+            padding: 0.42rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .trade-cond-btn.active {
+            border-color: var(--accent-primary);
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--accent-primary);
+        }
+
+        .trade-ratio-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.35rem;
+        }
+
+        .trade-ratio-btn {
+            padding: 0.3rem 0.25rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .trade-ratio-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .trade-summary-box {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 0.65rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+        }
+
+        .trade-summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .trade-modal-grid {
+                grid-template-columns: 1fr;
+            }
+            .trade-col-orderbook .orderbook-list {
+                max-height: 240px;
+            }
+            .trade-header-price-box {
+                margin-left: 0;
+            }
         }
 
         .modal-backdrop.open .modal-card {
@@ -1417,13 +1710,20 @@
     <!-- Top Header -->
     <header>
         <div class="nav-container">
-            <a href="/Dashboard/index.html" class="logo-area" style="text-decoration: none; color: inherit;">
-                <div class="logo-icon">S</div>
-                <div class="logo-title">StockLab</div>
-                <span class="logo-badge">v1.0 Live</span>
-            </a>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <a href="/Dashboard/index.html" class="logo-area" style="text-decoration: none; color: inherit;" title="대시보드로 이동">
+                    <div class="logo-icon">S</div>
+                    <div class="logo-title">StockLab</div>
+                    <span class="logo-badge">v1.0 Live</span>
+                </a>
+                <a href="/Admin/index.html" id="adminPageLink" class="admin-gear-link hidden" title="관리자 페이지 이동" aria-label="관리자 페이지 이동">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </a>
+            </div>
             <div class="nav-actions">
-                <a href="/Admin/index.html" id="adminPageLink" class="nav-link-btn nav-link-admin hidden">관리자</a>
                 <div class="session-pill hidden" id="navSessionBox">
                     <a href="/User/index.html" class="user-pill user-pill-link" id="navUserNickname" title="마이페이지로 이동" style="padding: 0.2rem 0.6rem;">-</a>
                     <span>세션 <span class="session-timer" id="navSessionTimer">30:00</span></span>
@@ -1723,10 +2023,10 @@
         </div>
     </main>
 
-    <!-- Real-time Quote Modal -->
+    <!-- Real-time Trade Modal -->
     <div class="modal-backdrop" id="quoteModal">
-        <div class="modal-card">
-            <div class="modal-header">
+        <div class="modal-card trade-modal-card">
+            <div class="trade-modal-header">
                 <div class="modal-title-area">
                     <div class="modal-stock-name" id="modalStockName">-</div>
                     <div class="modal-sub-info">
@@ -1736,72 +2036,149 @@
                         <span id="modalExchange">KRX</span>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
-                    <button type="button" class="btn-watchlist-toggle" id="btnToggleWatchlist" title="관심종목 등록/해제">☆ 관심종목 추가</button>
-                    <button class="modal-close-btn" id="modalCloseBtn" aria-label="닫기">✕</button>
-                </div>
-            </div>
-            <div id="modalWatchlistNotice" class="hidden" style="padding: 0.45rem 1.5rem; font-size: 0.78rem; font-weight: 600; border-bottom: 1px solid var(--border-color); background: var(--bg-elevated);"></div>
-            <div class="modal-body">
-                <div class="modal-price-area">
-                    <div style="min-width: 0; flex: 1;">
-                        <div class="modal-current-price" id="modalCurrentPrice">-</div>
-                    </div>
+                <div class="trade-header-price-box">
+                    <div class="trade-header-price" id="modalCurrentPrice">-</div>
                     <div class="modal-change-badge badge-flat" id="modalChangeBadge" style="flex-shrink: 0; white-space: nowrap;">
                         <span id="modalPriceChange">-</span>
                         <span id="modalChangeRate">(-%)</span>
                     </div>
                 </div>
-
-                <!-- Real-Time Order Book (WebSocket / SignalR) -->
-                <div class="orderbook-section">
-                    <div class="orderbook-header">
-                        <span>실시간 호가 (Order Book)</span>
-                        <span id="orderBookStatus">대기 중</span>
-                    </div>
-                    <div class="orderbook-list" id="orderBookList">
-                        <div class="orderbook-empty">실시간 호가 수신 대기 중...</div>
-                    </div>
-                </div>
-
-                <!-- REST Snapshot Quote Section -->
-                <div class="rest-quote-section">
-                    <div class="rest-quote-toolbar">
-                        <button type="button" id="btnRefreshQuote" style="flex-shrink:0; white-space:nowrap; padding:0.22rem 0.55rem; font-size:0.75rem; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-elevated); color:var(--text-primary); cursor:pointer;">🔄 갱신</button>
-                        <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="modalUpdatedAt">기준 시각 : --:--:--</span>
-                    </div>
-
-                    <div class="quote-grid">
-                        <div class="quote-item">
-                            <span class="quote-item-label">전일 종가</span>
-                            <span class="quote-item-value" id="modalBasePrice">-</span>
-                        </div>
-                        <div class="quote-item">
-                            <span class="quote-item-label">장 시작가</span>
-                            <span class="quote-item-value" id="modalOpenPrice">-</span>
-                        </div>
-                        <div class="quote-item">
-                            <span class="quote-item-label">당일 저가</span>
-                            <span class="quote-item-value" id="modalLowPrice" style="color: #3b82f6;">-</span>
-                        </div>
-                        <div class="quote-item">
-                            <span class="quote-item-label">당일 고가</span>
-                            <span class="quote-item-value" id="modalHighPrice" style="color: #ef4444;">-</span>
-                        </div>
-                        <div class="quote-item">
-                            <span class="quote-item-label">거래대금</span>
-                            <span class="quote-item-value" id="modalTradingValue">-</span>
-                        </div>
-                        <div class="quote-item">
-                            <span class="quote-item-label">거래량</span>
-                            <span class="quote-item-value" id="modalVolume">-</span>
-                        </div>
-                    </div>
+                <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
+                    <button type="button" class="btn-watchlist-toggle" id="btnToggleWatchlist" title="관심종목 등록/해제">☆ 관심종목 추가</button>
+                    <button class="modal-close-btn" id="modalCloseBtn" aria-label="닫기">✕</button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-trade-buy" id="btnTradeBuy">가상 매수 (Buy)</button>
-                <button type="button" class="btn-trade-sell" id="btnTradeSell">가상 매도 (Sell)</button>
+            <div id="modalWatchlistNotice" class="hidden" style="padding: 0.45rem 1.4rem; font-size: 0.78rem; font-weight: 600; border-bottom: 1px solid var(--border-color); background: var(--bg-elevated);"></div>
+            <div class="trade-modal-body">
+                <div class="trade-modal-grid">
+                    <!-- 1열: 캔들 + 거래량 차트 & 당일 시세 요약 -->
+                    <div class="trade-col-chart">
+                        <div class="trade-chart-card">
+                            <div class="trade-chart-toolbar">
+                                <div class="chart-period-group" id="chartPeriodGroup">
+                                    <button type="button" class="chart-period-btn" data-period="1M">분봉</button>
+                                    <button type="button" class="chart-period-btn active" data-period="D">일</button>
+                                    <button type="button" class="chart-period-btn" data-period="W">주</button>
+                                    <button type="button" class="chart-period-btn" data-period="M">월</button>
+                                    <button type="button" class="chart-period-btn" data-period="Y">년</button>
+                                </div>
+                                <span id="chartStatusText" style="font-size: 0.74rem; color: var(--text-muted);">캔들 차트 영역 (연동 준비)</span>
+                            </div>
+                            <div class="trade-chart-canvas" id="tradeCandleChartWrap">
+                                <span>차트 데이터 연동 예정 (캔들 + 거래량)</span>
+                            </div>
+                        </div>
+
+                        <div class="rest-quote-section" style="margin-top: 0; padding-top: 0.75rem;">
+                            <div class="rest-quote-toolbar">
+                                <button type="button" id="btnRefreshQuote" style="flex-shrink:0; white-space:nowrap; padding:0.22rem 0.55rem; font-size:0.75rem; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-elevated); color:var(--text-primary); cursor:pointer;">🔄 갱신</button>
+                                <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="modalUpdatedAt">기준 시각 : --:--:--</span>
+                            </div>
+                            <div class="quote-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem;">
+                                <div class="quote-item" style="padding: 0.55rem 0.75rem;">
+                                    <span class="quote-item-label">전일 종가</span>
+                                    <span class="quote-item-value" id="modalBasePrice">-</span>
+                                </div>
+                                <div class="quote-item" style="padding: 0.55rem 0.75rem;">
+                                    <span class="quote-item-label">장 시작가</span>
+                                    <span class="quote-item-value" id="modalOpenPrice">-</span>
+                                </div>
+                                <div class="quote-item" style="padding: 0.55rem 0.75rem;">
+                                    <span class="quote-item-label">거래대금</span>
+                                    <span class="quote-item-value" id="modalTradingValue">-</span>
+                                </div>
+                                <div class="quote-item" style="padding: 0.55rem 0.75rem;">
+                                    <span class="quote-item-label">당일 저가</span>
+                                    <span class="quote-item-value" id="modalLowPrice" style="color: #3b82f6;">-</span>
+                                </div>
+                                <div class="quote-item" style="padding: 0.55rem 0.75rem;">
+                                    <span class="quote-item-label">당일 고가</span>
+                                    <span class="quote-item-value" id="modalHighPrice" style="color: #ef4444;">-</span>
+                                </div>
+                                <div class="quote-item" style="padding: 0.55rem 0.75rem;">
+                                    <span class="quote-item-label">거래량</span>
+                                    <span class="quote-item-value" id="modalVolume">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2열: 실시간 호가창 -->
+                    <div class="trade-col-orderbook">
+                        <div class="orderbook-section">
+                            <div class="orderbook-header">
+                                <span>실시간 호가 (Order Book)</span>
+                                <span id="orderBookStatus">대기 중</span>
+                            </div>
+                            <div class="orderbook-list" id="orderBookList">
+                                <div class="orderbook-empty">실시간 호가 수신 대기 중...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3열: 매수/매도 주문 패널 -->
+                    <div class="trade-col-order">
+                        <div class="trade-order-card">
+                            <div class="trade-side-tabs">
+                                <button type="button" class="trade-side-tab active-buy" id="tradeTabBuy">매수 (Buy)</button>
+                                <button type="button" class="trade-side-tab" id="tradeTabSell">매도 (Sell)</button>
+                            </div>
+
+                            <div class="trade-field-group">
+                                <div class="trade-field-label">
+                                    <label for="tradeStrategySelect">투자 전략</label>
+                                    <span id="tradeAvailableText" style="color: var(--text-muted); font-weight: 600;">가능: -</span>
+                                </div>
+                                <select id="tradeStrategySelect" class="trade-select">
+                                    <option value="">로그인 후 전략 선택</option>
+                                </select>
+                            </div>
+
+                            <div class="trade-field-group">
+                                <span class="trade-field-label">주문 조건</span>
+                                <div class="trade-condition-group" id="tradeConditionGroup">
+                                    <button type="button" class="trade-cond-btn active" data-condition="2">지정가 (Limit)</button>
+                                    <button type="button" class="trade-cond-btn" data-condition="1">시장가 (Market)</button>
+                                </div>
+                            </div>
+
+                            <div class="trade-field-group">
+                                <div class="trade-field-label">
+                                    <label for="tradePriceInput">주문 단가</label>
+                                    <span id="tradePriceUnitLabel" style="color: var(--text-muted); font-weight: 600;">KRW</span>
+                                </div>
+                                <input type="number" id="tradePriceInput" class="trade-input" min="0" step="any" placeholder="호가 클릭 또는 단가 입력" autocomplete="off">
+                            </div>
+
+                            <div class="trade-field-group">
+                                <div class="trade-field-label">
+                                    <label for="tradeQtyInput">주문 수량 (주)</label>
+                                </div>
+                                <input type="number" id="tradeQtyInput" class="trade-input" min="1" step="1" placeholder="수량 입력" autocomplete="off">
+                                <div class="trade-ratio-row">
+                                    <button type="button" class="trade-ratio-btn" data-ratio="0.1">10%</button>
+                                    <button type="button" class="trade-ratio-btn" data-ratio="0.25">25%</button>
+                                    <button type="button" class="trade-ratio-btn" data-ratio="0.5">50%</button>
+                                    <button type="button" class="trade-ratio-btn" data-ratio="1">최대</button>
+                                </div>
+                            </div>
+
+                            <div class="trade-summary-box">
+                                <div class="trade-summary-row">
+                                    <span style="color: var(--text-muted);">예상 주문 총액</span>
+                                    <strong id="tradeEstimatedTotal" style="font-family: monospace;">-</strong>
+                                </div>
+                            </div>
+
+                            <div id="tradeOrderStatusMsg" style="font-size: 0.78rem; min-height: 1.05rem; color: var(--text-muted);"></div>
+
+                            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+                                <button type="button" class="btn-trade-buy" id="btnTradeBuy" style="flex: 1;">가상 매수 (Buy)</button>
+                                <button type="button" class="btn-trade-sell hidden" id="btnTradeSell" style="flex: 1;">가상 매도 (Sell)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -3736,6 +4113,43 @@
             }
             alert(`가상 ${sideLabel} 주문 기능은 3단계 모의투자 체결 엔진에서 연동됩니다!`);
         }
+
+        const tradeTabBuy = document.getElementById('tradeTabBuy');
+        const tradeTabSell = document.getElementById('tradeTabSell');
+        const tradeConditionGroup = document.getElementById('tradeConditionGroup');
+        const tradePriceInput = document.getElementById('tradePriceInput');
+        const chartPeriodGroup = document.getElementById('chartPeriodGroup');
+
+        tradeTabBuy?.addEventListener('click', () => {
+            tradeTabBuy.classList.add('active-buy');
+            tradeTabSell?.classList.remove('active-sell');
+            btnTradeBuy.classList.remove('hidden');
+            btnTradeSell.classList.add('hidden');
+        });
+        tradeTabSell?.addEventListener('click', () => {
+            tradeTabSell.classList.add('active-sell');
+            tradeTabBuy?.classList.remove('active-buy');
+            btnTradeSell.classList.remove('hidden');
+            btnTradeBuy.classList.add('hidden');
+        });
+        tradeConditionGroup?.querySelectorAll('.trade-cond-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                tradeConditionGroup.querySelectorAll('.trade-cond-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const isMarket = btn.dataset.condition === '1';
+                if (tradePriceInput) {
+                    tradePriceInput.disabled = isMarket;
+                    if (isMarket) tradePriceInput.value = '';
+                    tradePriceInput.placeholder = isMarket ? '시장가 자동 체결 기준' : '호가 클릭 또는 단가 입력';
+                }
+            });
+        });
+        chartPeriodGroup?.querySelectorAll('.chart-period-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                chartPeriodGroup.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
 
         btnTradeBuy.addEventListener('click', () => handleTradeButtonClick('매수'));
         btnTradeSell.addEventListener('click', () => handleTradeButtonClick('매도'));

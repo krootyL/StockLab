@@ -265,12 +265,11 @@
 <body>
   <header>
     <div class="brand">
-      <span>StockLab Admin</span>
-      <button id="navUsersBtn" class="tab-btn active" onclick="switchMainView('users')">유저 관리</button>
-      <button id="navOrdersBtn" class="tab-btn" onclick="switchMainView('orders')">전체 주문 현황</button>
+      <a href="/Dashboard/index.html" style="color: var(--text); font-size: 16px; font-weight: 700; text-decoration: none;" title="대시보드로 이동">StockLab Admin</a>
+      <button type="button" id="navUsersBtn" class="tab-btn active">유저 관리</button>
+      <button type="button" id="navOrdersBtn" class="tab-btn">전체 주문 현황</button>
     </div>
     <div class="auth-bar">
-      <a href="/Dashboard/index.html" class="nav-link">대시보드</a>
       <a href="/User/index.html" class="nav-link">마이페이지</a>
       <button type="button" class="theme-switch" id="themeToggleBtn" aria-label="테마 전환" title="라이트 / 다크 모드 전환">
         <span class="theme-switch-thumb"></span>
@@ -280,13 +279,13 @@
       <label class="forced-switch-wrap" title="종가 ±1% 범위 내에서 초당 3건 가상 호가 공급">
         <span style="font-size:12px;color:var(--muted);">강제 체결</span>
         <span class="switch">
-          <input id="forcedMatchToggle" type="checkbox" onchange="toggleForcedMatching(this.checked)" />
+          <input id="forcedMatchToggle" type="checkbox" />
           <span class="slider"></span>
         </span>
         <span id="forcedMatchState" class="status-pill">OFF</span>
       </label>
-      <input id="adminKeyInput" type="text" autocomplete="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security: disc;" placeholder="X-Admin-Key 입력" />
-      <button class="primary" onclick="connectAdmin()">연결 / 새로고침</button>
+      <input id="adminKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="X-Admin-Key 입력" />
+      <button type="button" id="connectAdminBtn" class="primary">연결 / 새로고침</button>
       <span id="authStatus" class="status-pill">미연결</span>
     </div>
   </header>
@@ -317,7 +316,7 @@
       </div>
       <div class="search-row">
         <input id="searchInput" type="text" placeholder="UID 또는 닉네임 검색" />
-        <button onclick="loadUsers(true)">검색</button>
+        <button type="button" id="searchUsersBtn">검색</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -337,7 +336,7 @@
         <span id="detailTitle">유저 상세</span>
         <div class="row" id="strategyPickerWrap" style="display:none;">
           <label for="strategySelect" style="color:var(--muted);font-size:12px;">투자 전략</label>
-          <select id="strategySelect" onchange="onStrategyChange()"></select>
+          <select id="strategySelect"></select>
         </div>
       </div>
       <div class="detail-body" id="detailBody">
@@ -351,9 +350,13 @@
   <script src="/client-config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
   <script>
-    const buildServerUrl = (path) => `${window.STOCKLAB_SERVER_URL || ''}${path}`;
+    // @ts-nocheck
+    const globalWin = /** @type {any} */ (window);
+    const getServerBaseUrl = () => String(globalWin.STOCKLAB_SERVER_URL || '');
+    const buildServerUrl = (/** @type {string} */ path) => `${getServerBaseUrl()}${path}`;
     const KEY_STORAGE = 'stocklab_admin_key';
     const ADMIN_USER_TYPE = 99;
+    /** @type {Record<number, string>} */
     const USER_TYPES = { 1: 'Local', 2: 'Discord', 99: 'Admin' };
 
     // 테마 초기화 및 전환 (라이트 모드 기본)
@@ -363,21 +366,33 @@
       if (saved === 'dark') {
         document.body.classList.add('dark-mode');
       }
-      btn.addEventListener('click', () => {
-        const isDark = document.body.classList.toggle('dark-mode');
-        localStorage.setItem('stocklab-theme', isDark ? 'dark' : 'light');
-      });
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const isDark = document.body.classList.toggle('dark-mode');
+          localStorage.setItem('stocklab-theme', isDark ? 'dark' : 'light');
+        });
+      }
     })();
-    const ORDER_SIDES = { 1: '매수', 2: '매도' };
-    const ORDER_TYPES = { 1: '시장가', 2: '지정가' };
-    const ORDER_STATUS = { 1: 'Pending', 2: 'PartiallyFilled', 3: 'Filled', 4: 'Cancelled', 5: 'Rejected' };
 
+    /** @type {Record<number, string>} */
+    const ORDER_SIDES = { 1: '매수', 2: '매도' };
+    /** @type {Record<number, string>} */
+    const ORDER_TYPES = { 1: '시장가', 2: '지정가' };
+    /** @type {Record<number, string>} */
+    const ORDER_STATUS = { 1: 'Pending', 2: 'PartiallyFilled', 3: 'Filled', 4: 'Cancelled', 5: 'Rejected' };
+    /** @type {Record<string, string>} */
+    const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+    /** @type {any[]} */
     let users = [];
+    /** @type {string | null} */
     let selectedUid = null;
+    /** @type {number | null} */
     let selectedStrategyId = null;
     let activeTab = 'wallets';
     let mainView = 'users';
     let globalOrderFilter = 'pending';
+    /** @type {any} */
     let toastTimer = null;
 
     const PAGE_SIZE = 20;
@@ -388,21 +403,41 @@
     let strategyOrdersPage = 1;
     let strategyTradesPage = 1;
 
+    /** @param {string} id */
     function getInputValue(id) {
       const el = document.getElementById(id);
       return (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) ? el.value : '';
     }
 
+    /**
+     * @param {string} id
+     * @param {string} val
+     */
     function setInputValue(id, val) {
       const el = document.getElementById(id);
       if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) el.value = val;
     }
 
+    /** @param {any} err */
     function getErrorMessage(err) {
       return err instanceof Error ? err.message : String(err);
     }
 
     setInputValue('adminKeyInput', sessionStorage.getItem(KEY_STORAGE) || '');
+    document.getElementById('navUsersBtn')?.addEventListener('click', () => switchMainView('users'));
+    document.getElementById('navOrdersBtn')?.addEventListener('click', () => switchMainView('orders'));
+    document.getElementById('forcedMatchToggle')?.addEventListener('change', (e) => {
+      const target = e.currentTarget;
+      if (target instanceof HTMLInputElement) {
+        toggleForcedMatching(target.checked);
+      }
+    });
+    document.getElementById('connectAdminBtn')?.addEventListener('click', () => connectAdmin());
+    document.getElementById('searchUsersBtn')?.addEventListener('click', () => loadUsers(true));
+    document.getElementById('strategySelect')?.addEventListener('change', () => onStrategyChange());
+    document.getElementById('adminKeyInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') connectAdmin();
+    });
     document.getElementById('searchInput')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') loadUsers(true);
     });
@@ -411,6 +446,10 @@
       return getInputValue('adminKeyInput').trim();
     }
 
+    /**
+     * @param {string} msg
+     * @param {boolean} [isError]
+     */
     function showToast(msg, isError = false) {
       const el = document.getElementById('toast');
       if (!el) return;
@@ -422,18 +461,35 @@
       toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
     }
 
+    /**
+     * @param {string} url
+     * @param {string} [method]
+     * @param {any} [bodyObj]
+     */
     async function apiFetch(url, method = 'GET', bodyObj = null) {
       const key = getAdminKey();
       if (!key) throw new Error('X-Admin-Key를 먼저 입력해주세요.');
-      const res = await fetch(buildServerUrl(url), {
-        method,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Key': key
-        },
-        body: bodyObj ? JSON.stringify(bodyObj) : undefined
-      });
+      if (/[^\x00-\xff]/.test(key)) {
+        throw new Error('관리자 키에 한글 등 허용되지 않는 문자가 포함되어 있습니다. 영문/숫자로 다시 입력해주세요.');
+      }
+
+      const targetUrl = buildServerUrl(url);
+      let res;
+      try {
+        res = await fetch(targetUrl, {
+          method,
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Key': key
+          },
+          body: bodyObj ? JSON.stringify(bodyObj) : undefined
+        });
+      } catch (err) {
+        const baseDesc = getServerBaseUrl() || window.location.origin;
+        throw new Error(`중앙 서버(${baseDesc})에 연결할 수 없습니다. (${getErrorMessage(err)})`);
+      }
+
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         const msg = json?.error?.message || `요청 실패 (${res.status})`;
@@ -449,6 +505,7 @@
       await Promise.all([loadUsers(), loadForcedMatchingStatus()]);
     }
 
+    /** @param {boolean} enabled */
     function renderForcedMatchingState(enabled) {
       const toggleEl = document.getElementById('forcedMatchToggle');
       const stateEl = document.getElementById('forcedMatchState');
@@ -469,6 +526,7 @@
       }
     }
 
+    /** @param {boolean} enabled */
     async function toggleForcedMatching(enabled) {
       try {
         const data = await apiFetch('/api/admin/matching/forced', 'POST', { enabled: !!enabled });
@@ -481,14 +539,25 @@
       }
     }
 
+    /**
+     * @param {string} handlerName
+     * @param {any} rawValue
+     * @param {number} safeTotalPages
+     */
     function jumpToAdminPage(handlerName, rawValue, safeTotalPages) {
       const target = Math.max(1, Math.min(safeTotalPages, Math.floor(Number(rawValue) || 1)));
-      const fn = window[handlerName];
+      const fn = globalWin[handlerName];
       if (typeof fn === 'function') {
         fn(target);
       }
     }
 
+    /**
+     * @param {number} page
+     * @param {number} totalPages
+     * @param {number} totalCount
+     * @param {string} handlerName
+     */
     function buildPaginationHtml(page, totalPages, totalCount, handlerName) {
       if (totalCount === 0) return '';
       const safeTotalPages = Math.max(1, totalPages || 1);
@@ -531,21 +600,25 @@
       `;
     }
 
+    /** @param {number} page */
     function goUsersPage(page) {
       usersPage = Math.max(1, page);
       loadUsers(false);
     }
 
+    /** @param {number} page */
     function goGlobalOrdersPage(page) {
       globalOrdersPage = Math.max(1, page);
       renderGlobalOrders();
     }
 
+    /** @param {number} page */
     function goStrategyOrdersPage(page) {
       strategyOrdersPage = Math.max(1, page);
       renderDetail();
     }
 
+    /** @param {number} page */
     function goStrategyTradesPage(page) {
       strategyTradesPage = Math.max(1, page);
       renderDetail();
@@ -554,6 +627,7 @@
     async function loadUsers(resetPage = false) {
       if (resetPage) usersPage = 1;
       const statusEl = document.getElementById('authStatus');
+      const userCountEl = document.getElementById('userCount');
       try {
         const q = getInputValue('searchInput').trim();
         const params = new URLSearchParams({
@@ -567,24 +641,31 @@
         usersTotalPages = paged?.totalPages ?? 1;
         usersTotalCount = paged?.totalCount ?? users.length;
 
-        statusEl.textContent = '연결됨';
-        statusEl.className = 'status-pill ok';
-        document.getElementById('userCount').textContent = String(usersTotalCount);
+        if (statusEl) {
+          statusEl.textContent = '연결됨';
+          statusEl.className = 'status-pill ok';
+        }
+        if (userCountEl) {
+          userCountEl.textContent = String(usersTotalCount);
+        }
         renderUserTable();
         if (mainView === 'orders') {
           await renderGlobalOrders();
         } else if (selectedUid) {
-          const stillExists = users.find(u => u.uid === selectedUid);
+          const stillExists = users.find((/** @type {any} */ u) => u.uid === selectedUid);
           if (stillExists) renderDetail();
           else { selectedUid = null; selectedStrategyId = null; }
         }
       } catch (err) {
-        statusEl.textContent = '인증/오류';
-        statusEl.className = 'status-pill err';
+        if (statusEl) {
+          statusEl.textContent = '인증/오류';
+          statusEl.className = 'status-pill err';
+        }
         showToast(getErrorMessage(err), true);
       }
     }
 
+    /** @param {string} view */
     function switchMainView(view) {
       mainView = view;
       document.getElementById('navUsersBtn')?.classList.toggle('active', view === 'users');
@@ -596,12 +677,14 @@
       }
     }
 
+    /** @param {string} filter */
     function setGlobalOrderFilter(filter) {
       globalOrderFilter = filter;
       globalOrdersPage = 1;
       renderGlobalOrders();
     }
 
+    /** @param {any} o */
     function buildWaitReasonBadge(o) {
       if (!o.waitReason) return '<span style="color:var(--muted);">-</span>';
       let color = 'var(--accent)';
@@ -612,6 +695,10 @@
       return `<span class="mono" style="color:${color};font-size:11px;">${esc(o.waitReason)}</span>`;
     }
 
+    /**
+     * @param {any[]} orders
+     * @param {boolean} includeUserCols
+     */
     function buildOrdersTableHtml(orders, includeUserCols) {
       if (!orders.length) return '<div class="empty">해당 조건의 거래가 없습니다.</div>';
       return `
@@ -624,7 +711,7 @@
             </tr>
           </thead>
           <tbody>
-            ${orders.map(o => {
+            ${orders.map((/** @type {any} */ o) => {
               const canCancel = o.status === 1 || o.status === 2;
               const statusClass = o.status === 3 ? 'badge-filled' : (canCancel ? 'badge-pending' : 'badge-cancelled');
               const userCell = includeUserCols
@@ -652,6 +739,7 @@
       `;
     }
 
+    /** @param {string} uid */
     function jumpToUser(uid) {
       mainView = 'users';
       document.getElementById('navUsersBtn')?.classList.add('active');
@@ -662,8 +750,11 @@
 
     async function renderGlobalOrders(preserveLayout = false) {
       const body = document.getElementById('detailBody');
-      document.getElementById('detailTitle').textContent = '전체 주문 현황';
-      document.getElementById('strategyPickerWrap').style.display = 'none';
+      const titleEl = document.getElementById('detailTitle');
+      const pickerWrap = document.getElementById('strategyPickerWrap');
+      if (!body) return;
+      if (titleEl) titleEl.textContent = '전체 주문 현황';
+      if (pickerWrap) pickerWrap.style.display = 'none';
 
       let wrap = document.getElementById('globalOrdersWrap');
       if (!preserveLayout || !wrap) {
@@ -678,6 +769,8 @@
         `;
         wrap = document.getElementById('globalOrdersWrap');
       }
+      if (!wrap) return;
+
       try {
         const paged = await apiFetch(`/api/admin/orders?status=${encodeURIComponent(globalOrderFilter)}&page=${globalOrdersPage}&pageSize=${PAGE_SIZE}`);
         const orders = paged?.items ?? [];
@@ -689,27 +782,35 @@
       }
     }
 
+    /** @param {string} iso */
     function fmtDate(iso) {
       return new Date(iso).toLocaleString('ko-KR', { hour12: false });
     }
 
+    /**
+     * @param {number | string} n
+     * @param {number} [digits]
+     */
     function fmtNum(n, digits = 2) {
       return Number(n).toLocaleString('ko-KR', { maximumFractionDigits: digits });
     }
 
+    /** @param {any} str */
     function esc(str) {
-      return String(str ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+      return String(str ?? '').replace(/[&<>"']/g, (/** @type {string} */ s) => ESC_MAP[s] || s);
     }
 
     function renderUserTable() {
       const tbody = document.getElementById('userTableBody');
       const pager = document.getElementById('userPagination');
+      if (!tbody) return;
+
       if (!users.length) {
         tbody.innerHTML = '<tr><td colspan="4" class="empty">조회된 유저가 없습니다.</td></tr>';
         if (pager) pager.style.display = 'none';
         return;
       }
-      tbody.innerHTML = users.map(u => `
+      tbody.innerHTML = users.map((/** @type {any} */ u) => `
         <tr class="selectable ${u.uid === selectedUid ? 'active' : ''}" onclick="selectUser('${u.uid}')">
           <td>${esc(u.nickname)}</td>
           <td class="mono">${esc(u.uid)}</td>
@@ -723,9 +824,10 @@
       }
     }
 
+    /** @param {string} uid */
     function selectUser(uid) {
       selectedUid = uid;
-      const user = users.find(u => u.uid === uid);
+      const user = users.find((/** @type {any} */ u) => u.uid === uid);
       selectedStrategyId = user?.strategies?.[0]?.strategyId ?? null;
       strategyOrdersPage = 1;
       strategyTradesPage = 1;
@@ -744,21 +846,29 @@
     }
 
     async function renderDetail() {
-      const user = users.find(u => u.uid === selectedUid);
+      const user = users.find((/** @type {any} */ u) => u.uid === selectedUid);
       const body = document.getElementById('detailBody');
+      const titleEl = document.getElementById('detailTitle');
       const pickerWrap = document.getElementById('strategyPickerWrap');
+      if (!body || !pickerWrap) return;
+
       if (!user) {
         pickerWrap.style.display = 'none';
         body.innerHTML = '<div class="empty">좌측에서 유저를 선택해주세요.</div>';
         return;
       }
 
-      document.getElementById('detailTitle').textContent = `${user.nickname} (${user.uid})`;
+      if (titleEl) titleEl.textContent = `${user.nickname} (${user.uid})`;
       const select = document.getElementById('strategySelect');
-      select.innerHTML = user.strategies.map(s => `<option value="${s.strategyId}" ${s.strategyId === selectedStrategyId ? 'selected' : ''}>#${s.strategyId} ${esc(s.name)}</option>`).join('');
-      pickerWrap.style.display = user.strategies.length ? 'flex' : 'none';
+      const userStrategies = Array.isArray(user.strategies) ? user.strategies : [];
+      if (select) {
+        select.innerHTML = userStrategies
+          .map((/** @type {any} */ s) => `<option value="${s.strategyId}" ${s.strategyId === selectedStrategyId ? 'selected' : ''}>#${s.strategyId} ${esc(s.name)}</option>`)
+          .join('');
+      }
+      pickerWrap.style.display = userStrategies.length ? 'flex' : 'none';
 
-      const strategy = user.strategies.find(s => s.strategyId === selectedStrategyId);
+      const strategy = userStrategies.find((/** @type {any} */ s) => s.strategyId === selectedStrategyId);
       const tabHeader = `
         <div class="card">
           <div class="row" style="justify-content:space-between;">
@@ -782,16 +892,20 @@
       await renderTabContent(strategy);
     }
 
+    /** @param {string} tab */
     function switchTab(tab) {
       activeTab = tab;
       renderDetail();
     }
 
+    /** @param {any} strategy */
     async function renderTabContent(strategy) {
       const el = document.getElementById('tabContent');
+      if (!el) return;
       if (!strategy) { el.innerHTML = '<div class="empty">투자 전략이 없습니다.</div>'; return; }
 
       if (activeTab === 'wallets') {
+        const wallets = Array.isArray(strategy.wallets) ? strategy.wallets : [];
         el.innerHTML = `
           <div class="card" style="margin-bottom:12px;">
             <div class="row">
@@ -807,7 +921,7 @@
           <table>
             <thead><tr><th>Wallet ID</th><th>통화</th><th>예수가능금 (Available)</th><th>주문대기금 (Pending)</th></tr></thead>
             <tbody>
-              ${strategy.wallets.map(w => `
+              ${wallets.map((/** @type {any} */ w) => `
                 <tr>
                   <td class="mono">${w.walletId}</td>
                   <td><strong>${esc(w.currency)}</strong></td>
@@ -819,12 +933,13 @@
           </table>
         `;
       } else if (activeTab === 'holdings') {
-        if (!strategy.holdings.length) { el.innerHTML = '<div class="empty">보유 종목이 없습니다.</div>'; return; }
+        const holdings = Array.isArray(strategy.holdings) ? strategy.holdings : [];
+        if (!holdings.length) { el.innerHTML = '<div class="empty">보유 종목이 없습니다.</div>'; return; }
         el.innerHTML = `
           <table>
             <thead><tr><th>Holding ID</th><th>종목코드</th><th>보유수량</th><th>평균매수가</th></tr></thead>
             <tbody>
-              ${strategy.holdings.map(h => `
+              ${holdings.map((/** @type {any} */ h) => `
                 <tr>
                   <td class="mono">${h.holdingId}</td>
                   <td class="mono"><strong>${esc(h.stockCode)}</strong></td>
@@ -855,7 +970,7 @@
             <table>
               <thead><tr><th>TradeId</th><th>OrderId</th><th>종목</th><th>구분</th><th>체결가</th><th>체결수량</th><th>체결금액</th><th>체결시각</th></tr></thead>
               <tbody>
-                ${trades.map(t => `
+                ${trades.map((/** @type {any} */ t) => `
                   <tr>
                     <td class="mono">${t.tradeId}</td>
                     <td class="mono">${t.orderId}</td>
@@ -877,6 +992,7 @@
       }
     }
 
+    /** @param {string} uid */
     async function updateNickname(uid) {
       const nickname = getInputValue('nicknameEditInput').trim();
       try {
@@ -888,6 +1004,7 @@
       }
     }
 
+    /** @param {number} strategyId */
     async function adjustBalance(strategyId) {
       const currency = getInputValue('adjustCurrency');
       const amount = Number(getInputValue('adjustAmount'));
@@ -901,6 +1018,7 @@
       }
     }
 
+    /** @param {number} orderId */
     async function cancelOrder(orderId) {
       try {
         await apiFetch(`/api/admin/orders/${orderId}/cancel`, 'POST');
@@ -911,6 +1029,7 @@
       }
     }
 
+    /** @type {any} */
     let orderRefreshTimer = null;
     function scheduleOrderRefresh() {
       if (!getAdminKey()) return;
@@ -925,8 +1044,9 @@
     }
 
     function initAdminSignalR() {
-      if (typeof signalR === 'undefined') return;
-      const conn = new signalR.HubConnectionBuilder()
+      const sr = globalWin.signalR;
+      if (!sr) return;
+      const conn = new sr.HubConnectionBuilder()
         .withUrl(buildServerUrl('/hubs/quote'), { withCredentials: true })
         .withAutomaticReconnect()
         .build();
